@@ -19,23 +19,21 @@ export default function RegisterPage() {
       const response = await fetch('http://localhost:5000/akun/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // Beri tahu backend kita kirim JSON
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ // Data harus diubah jadi string JSON
+        body: JSON.stringify({
           email: email,
           password: password,
         }),
       });
 
       if (!response.ok) {
-        // Jika server merespon error, kita ambil datanya
         const errorData = await response.json();
-        // lempar error agar ditangkap oleh 'catch'
         throw new Error(errorData.message || 'Gagal mendaftar'); 
       }
       
       alert('Registrasi berhasil!');
-      router.push('/login'); // Arahkan ke halaman login
+      router.push('/login');
 
     } catch (err: unknown) {
         setLoading(false);

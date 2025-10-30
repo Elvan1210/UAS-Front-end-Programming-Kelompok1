@@ -7,20 +7,19 @@ const akunSchema = new Schema({
   email: {
     type: String,
     required: [true, 'Email wajib diisi'],
-    unique: true,
+    unique: true, 
     lowercase: true,
     trim: true
   },
   password: {
     type: String,
     required: [true, 'Password wajib diisi'],
-    minlength: [6, 'Password minimal 6 karakter']
+    minlength: [6, 'Password minimal 6 karakter'] 
   }
 }, {
-  timestamps: true,
+  timestamps: true, 
 });
 
-// Hash password SEBELUM disimpan
 akunSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
 
@@ -33,8 +32,6 @@ akunSchema.pre('save', async function(next) {
   }
 });
 
-
-// Method untuk membandingkan password saat login
 akunSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

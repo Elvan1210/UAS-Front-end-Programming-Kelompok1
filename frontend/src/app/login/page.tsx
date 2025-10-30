@@ -1,10 +1,8 @@
-// File: frontend/src/app/login/page.tsx
-
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Untuk link ke halaman registrasi
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -35,19 +33,16 @@ export default function LoginPage() {
         throw new Error(errorData.message || 'Gagal login');
       }
 
-      // Jika login sukses, backend akan kirim data user + token
       const data = await response.json();
-      
-      // Simpan token ke Local Storage
+
       localStorage.setItem('kasirToken', data.token);
       localStorage.setItem('kasirUserEmail', data.email);
 
-      alert('Login berhasil! Selamat datang ' + data.email);
+      alert('Login berhasil!');
       router.push('/dashboard');
 
     } catch (err: unknown) {
       setLoading(false);
-      // Penanganan error yang type-safe
       let errorMessage = 'Terjadi kesalahan saat login.';
       if (err instanceof Error) {
         errorMessage = err.message;
@@ -108,8 +103,7 @@ export default function LoginPage() {
               </form>
               <div className="text-center mt-3">
                 <p>
-                  Belum punya akun?{' '}
-                  <Link href="/register">Daftar di sini</Link>
+                  Belum punya akun? <Link href="/register">Daftar di sini</Link>
                 </p>
               </div>
             </div>
