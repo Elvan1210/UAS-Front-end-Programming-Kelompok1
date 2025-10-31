@@ -2,130 +2,198 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+} from 'react-bootstrap';
+
+// Interface untuk data form
+interface ProductForm {
+  name: string;
+  price: number;
+  stock: number;
+  category: string;
+}
 
 export default function InputMenuPage() {
-  const [nama, setNama] = useState('');
-  const [harga, setHarga] = useState('');
-  const [gambar, setGambar] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
   const router = useRouter();
+  const [formData, setFormData] = useState<ProductForm>({
+    name: '',
+    price: 0,
+    stock: 0,
+    category: 'Makanan', // Set default kategori
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
-    setIsError(false);
+    setError(null);
+    setSuccess(null);
 
-    const token = localStorage.getItem('kasirToken');
-    if (!token) {
-      alert('Sesi habis. Silakan login kembali.');
-      router.push('/login');
+    // Validasi sederhana
+    if (!formData.name || formData.price <= 0) {
+      setError('Nama dan harga harus diisi (harga tidak boleh 0)!');
+      setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5000/menu/add', {
+      // API call untuk 'POST' (Create)
+      const response = await fetch('http://localhost:5000/api/products', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nama,
-          harga,
-          gambar,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        setIsError(true);
-        throw new Error(data.message || 'Gagal menambahkan menu.');
+      if (data.success) {
+        setSuccess('✅ Produk berhasil ditambahkan!');
+        // Reset form setelah berhasil
+        setFormData({ name: '', price: 0, stock: 0, category: 'Makanan' });
+        
+        // Arahkan ke halaman kelola setelah 1.5 detik
+        setTimeout(() => {
+          router.push('/menu/kelola');
+        }, 1500);
+      } else {
+        setError('❌ Error: ' + data.message);
       }
-
-      setMessage('Menu berhasil ditambahkan!');
-      setNama('');
-      setHarga('');
-      setGambar('');
+    } catch (error) {
+      console.error('Error:', error);
+      setError('❌ Gagal terhubung ke server');
+    } finally {
       setLoading(false);
-
-    } catch (err: unknown) {
-      setLoading(false);
-      let errorMessage = 'Terjadi kesalahan saat menyimpan menu.';
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      setMessage(errorMessage);
-      setIsError(true);
     }
   };
 
   return (
-    <div className="container mt-5">
-      <div className="row">
-        <div className="col-md-8 mx-auto">
-          <h1 className="mb-4">Input Menu Baru</h1>
+    <Container className="mt-5">
+      <Row className="justify-content-md-center">
+        <Col md={8} lg={6}>
+          <Card>
+            <Card.Header as="h4" className="bg-primary text-white">
+              ➕ Input Menu Baru
+            </Card.Header>
+            <Card.Body>
+              <Form onSubmit={handleSubmit}>
+                {/* Pesan Alert untuk Success atau Error */}
+                {success && <Alert variant="success">{success}</Alert>}
+                {error && <Alert variant="danger">{error}</Alert>}
 
-          <Link href="/menu" className="btn btn-outline-secondary btn-sm mb-4">
-            ← Kembali ke Manajemen Menu
-          </Link>
-
-          {message && (
-            <div className={`alert ${isError ? 'alert-danger' : 'alert-success'}`} role="alert">
-              {message}
-            </div>
-          )}
-
-          <div className="card">
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="namaInput" className="form-label">Nama Makanan/Minuman</label>
-                  <input
+                {/* Form Group untuk Nama Produk */}
+                <Form.Group className="mb-3" controlId="formNamaProduk">
+                  <Form.Label className="fw-bold">Nama Produk</Form.Label>
+                  <Form.Control
                     type="text"
-                    className="form-control"
-                    id="namaInput"
-                    value={nama}
-                    onChange={(e) => setNama(e.target.value)}
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="Masukkan nama produk"
                     required
+                    disabled={loading}
                   />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="hargaInput" className="form-label">Harga (Contoh: 25000)</label>
-                  <input
-                    type="text" 
-                    className="form-control"
-                    id="hargaInput"
-                    value={harga}
-                    onChange={(e) => setHarga(e.target.value)}
+                </Form.Group>
+
+                {/* Form Group untuk Harga */}
+                <Form.Group className="mb-3" controlId="formHarga">
+                  <Form.Label className="fw-bold">Harga (Rp)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        price: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="Masukkan harga"
                     required
+                    min="0"
+                    disabled={loading}
                   />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="gambarInput" className="form-label">URL Foto/Gambar (Opsional)</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="gambarInput"
-                    value={gambar}
-                    onChange={(e) => setGambar(e.target.value)}
+                </Form.Group>
+
+                {/* Form Group untuk Stock */}
+                <Form.Group className="mb-3" controlId="formStock">
+                  <Form.Label className="fw-bold">Stock</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.stock}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        stock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="Masukkan stock awal"
+                    required
+                    min="0"
+                    disabled={loading}
                   />
+                </Form.Group>
+
+                {/* Form Group untuk Kategori */}
+                <Form.Group className="mb-3" controlId="formKategori">
+                  <Form.Label className="fw-bold">Kategori</Form.Label>
+                  <Form.Select
+                    value={formData.category}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
+                    disabled={loading}
+                  >
+                    <option value="Makanan">Makanan</option>
+                    <option value="Minuman">Minuman</option>
+                    <option value="Snack">Snack</option>
+                    <option value="Umum">Umum</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <hr />
+
+                {/* Tombol Submit dan Kembali */}
+                <div className="d-grid gap-2">
+                  <Button variant="primary" type="submit" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                        />
+                        {' '}
+                        Menyimpan...
+                      </>
+                    ) : (
+                      '💾 Simpan Produk'
+                    )}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => router.push('/menu')} // Kembali ke halaman pilihan
+                    disabled={loading}
+                  >
+                    Kembali ke Pilihan Menu
+                  </Button>
                 </div>
-                <button
-                  type="submit"
-                  className="btn btn-success w-100"
-                  disabled={loading}
-                >
-                  {loading ? 'Menyimpan...' : 'Tambah Menu'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 }

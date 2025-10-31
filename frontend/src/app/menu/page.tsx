@@ -1,54 +1,68 @@
 'use client';
 
 import Link from 'next/link';
+import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 
-export default function MenuPage() {
+export default function MenuManagementPage() {
   return (
-    <div className="container mt-5">
-      <div className="row">
-        <div className="col">
-          <h1>Manajemen Menu</h1>
-          <p>Silakan pilih tindakan yang ingin Anda lakukan.</p>
-        </div>
-      </div>
+    <Container className="mt-5">
+      <Row>
+        <Col>
+          <h2 className="mb-3">Manajemen Menu</h2>
+          <p className="text-muted">
+            Silakan pilih tindakan yang ingin Anda lakukan.
+          </p>
+        </Col>
+      </Row>
 
-      <div className="row mt-4 g-3">
-        <div className="col-md-6">
-          <div className="card h-100">
-            <div className="card-body d-flex flex-column">
-              <h5 className="card-title">Input Menu Baru</h5>
-              <p className="card-text">
+      <Row className="mt-4">
+        {/* Card 1: Input Menu Baru */}
+        <Col md={6} className="mb-4">
+          <Card className="h-100">
+            <Card.Body className="d-flex flex-column">
+              <Card.Title>Input Menu Baru</Card.Title>
+              <Card.Text>
                 Gunakan halaman ini untuk mendaftarkan menu baru ke dalam sistem
                 kasir Anda.
-              </p>
-              <Link
-                href="/menu/input"
-                className="btn btn-primary mt-auto"
-              >
-                Pergi ke Halaman Input
-              </Link>
-            </div>
-          </div>
-        </div>
+              </Card.Text>
 
-        <div className="col-md-6">
-          <div className="card h-100">
-            <div className="card-body d-flex flex-column">
-              <h5 className="card-title">Lihat & Kelola Menu</h5>
-              <p className="card-text">
+              {/* === PERBAIKAN DI SINI ===
+                Button-nya dibungkus di dalam Link.
+                Bukan lagi <Button as={Link}...>
+              */}
+              <Link href="/menu/input" className="mt-auto">
+                <Button variant="primary" className="w-100">
+                  Pergi ke Halaman Input
+                </Button>
+              </Link>
+              {/* ======================= */}
+            </Card.Body>
+          </Card>
+        </Col>
+
+        {/* Card 2: Lihat & Kelola Menu */}
+        <Col md={6} className="mb-4">
+          <Card className="h-100">
+            <Card.Body className="d-flex flex-column">
+              <Card.Title>Lihat & Kelola Menu</Card.Title>
+              <Card.Text>
                 Lihat semua menu yang sudah ada. Anda bisa mengubah harga, nama,
                 foto, atau menghapus menu.
-              </p>
-              <Link
-                href="/menu/kelola"
-                className="btn btn-secondary mt-auto"
-              >
-                Pergi ke Halaman Kelola
+              </Card.Text>
+
+              {/* === PERBAIKAN DI SINI ===
+                Button-nya juga dibungkus di dalam Link
+              */}
+              <Link href="/menu/kelola" className="mt-auto">
+                <Button variant="secondary" className="w-100">
+                  Pergi ke Halaman Kelola
+                </Button>
               </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              {/* ======================= */}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+    </Container>
   );
 }

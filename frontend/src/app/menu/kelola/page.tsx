@@ -1,164 +1,317 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// Ini adalah kode yang Anda berikan tadi,
+// sekarang ditempatkan di /menu/kelola/page.tsx
 
-interface MenuItem {
-  _id: string;
-  nama: string;
-  harga: string;
-  gambar: string | null;
+import { useState, useEffect } from 'react';
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Button,
+  Badge,
+  Table,
+  Modal,
+  Spinner,
+} from 'react-bootstrap';
+
+interface Product {
+  _id?: string;
+  name: string;
+  price: number;
+  stock: number;
+  category: string;
+  isActive?: boolean;
 }
 
-export default function KelolaMenuPage() {
-  const [menus, setMenus] = useState<MenuItem[]>([]);
+export default function KelolaMenuPage() { // Nama fungsi bisa diganti
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
-  const router = useRouter();
+  const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<Product>({
+    name: '',
+    price: 0,
+    stock: 0,
+    category: 'Umum',
+  });
 
-  const fetchMenus = async () => {
-    setLoading(true);
-    setMessage('');
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5000/menu/');
+      // Pastikan URL ini benar (sesuai Gambar 4, backend di port 5000)
+      const response = await fetch('http://localhost:5000/api/products');
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Gagal mengambil data menu.');
+      if (data.success) {
+        setProducts(data.data);
       }
-      
-      setMenus(data);
-    } catch (err: unknown) {
-      let errorMessage = 'Gagal memuat menu. Server mungkin mati.';
-      if (err instanceof Error) {
-        errorMessage = errorMessage.includes('Gagal memuat') ? errorMessage : err.message;
-      }
-      setMessage(errorMessage);
-      setIsError(true);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Gagal memuat produk');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    // Basic protection fallback
-    const token = localStorage.getItem('kasirToken');
-    if (!token) {
-        router.push('/login');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name || formData.price <= 0) {
+      alert('Nama dan harga harus diisi!');
+      return;
     }
-    fetchMenus();
-  }, [router]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus menu ini? Tindakan ini tidak dapat dibatalkan.')) return;
-
-    setMessage('');
-    setIsError(false);
-    
     try {
-      const response = await fetch(`http://localhost:5000/menu/${id}`, {
-        method: 'DELETE',
+      const url = editingProduct
+        ? `http://localhost:5000/api/products/${editingProduct._id}`
+        : 'http://localhost:5000/api/products';
+
+      const response = await fetch(url, {
+        method: editingProduct ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Gagal menghapus menu.');
+      if (data.success) {
+        alert(
+          editingProduct
+            ? '✅ Produk berhasil diupdate!'
+            : '✅ Produk berhasil ditambahkan!'
+        );
+        closeModal();
+        fetchProducts();
+      } else {
+        alert('❌ Error: ' + data.message);
       }
-
-      setMenus(menus.filter(menu => menu._id !== id));
-      setMessage(data.message);
-      setIsError(false);
-
-    } catch (err: unknown) {
-      let errorMessage = 'Gagal menghapus menu. Silakan coba lagi.';
-      if (err instanceof Error) {
-        errorMessage = errorMessage.includes('Gagal menghapus') ? errorMessage : err.message;
-      }
-      setMessage(errorMessage);
-      setIsError(true);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Gagal menyimpan produk');
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus produk ini?')) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/products/${id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ Produk berhasil dihapus!');
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Gagal menghapus produk');
+    }
+  };
+
+  const openModal = (product?: Product) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormData(product);
+    } else {
+      setEditingProduct(null);
+      setFormData({ name: '', price: 0, stock: 0, category: 'Umum' });
+    }
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingProduct(null);
+    setFormData({ name: '', price: 0, stock: 0, category: 'Umum' });
+  };
 
   return (
-    <div className="container mt-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Daftar Menu Tersedia</h1>
-        <Link href="/menu" className="btn btn-outline-secondary btn-sm">
-            ← Kembali ke Menu Utama
-        </Link>
-      </div>
-
-      {message && (
-        <div className={`alert ${isError ? 'alert-danger' : 'alert-success'}`} role="alert">
-          {message}
-        </div>
-      )}
-
-      {loading && (
-        <div className="text-center my-5">
-            <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Memuat...</span>
+    <>
+      <Container className="mt-4">
+        <Card>
+          <Card.Header className="bg-primary text-white">
+            <div className="d-flex justify-content-between align-items-center">
+              <h4 className="mb-0">📦 Daftar Produk</h4>
+              <Button variant="light" onClick={() => openModal()}>
+                ➕ Tambah Produk
+              </Button>
             </div>
-            <p className='mt-2'>Memuat data menu...</p>
-        </div>
-      )}
-
-      {!loading && menus.length === 0 && !isError && (
-        <div className="alert alert-info text-center">
-            Belum ada menu yang terdaftar. Silakan tambah menu baru!
-        </div>
-      )}
-
-      {!loading && menus.length > 0 && (
-        <div className="table-responsive">
-          <table className="table table-striped table-hover align-middle">
-            <thead className="table-dark">
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Nama Menu</th>
-                <th scope="col">Harga</th>
-                <th scope="col">Foto</th>
-                <th scope="col">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {menus.map((menu, index) => (
-                <tr key={menu._id}>
-                  <th scope="row">{index + 1}</th>
-                  <td>{menu.nama}</td>
-                  <td>Rp {menu.harga}</td>
-                  <td>
-                    {menu.gambar ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={menu.gambar} alt={menu.nama} style={{ width: '80px', height: 'auto' }} className="img-thumbnail" />
+          </Card.Header>
+          <Card.Body>
+            {loading ? (
+              <div className="text-center py-5">
+                <Spinner animation="border" variant="primary" />
+                <p className="mt-3">Memuat data...</p>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <Table striped bordered hover>
+                  <thead className="table-dark">
+                    <tr>
+                      <th style={{ width: '50px' }}>No</th>
+                      <th>Nama Produk</th>
+                      <th>Harga</th>
+                      <th>Stock</th>
+                      <th>Kategori</th>
+                      <th style={{ width: '150px' }} className="text-center">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="text-center py-5 text-muted"
+                        >
+                          <h3>📦</h3>
+                          <p>Belum ada produk</p>
+                        </td>
+                      </tr>
                     ) : (
-                      <span className="text-muted">Tidak ada foto</span>
+                      products.map((product, index) => (
+                        <tr key={product._id}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <strong>{product.name}</strong>
+                          </td>
+                          <td>Rp {product.price.toLocaleString('id-ID')}</td>
+                          <td>
+                            <Badge
+                              bg={
+                                product.stock > 10
+                                  ? 'success'
+                                  : product.stock > 0
+                                  ? 'warning'
+                                  : 'danger'
+                              }
+                            >
+                              {product.stock}
+                            </Badge>
+                          </td>
+                          <td>
+                            <Badge bg="info">{product.category}</Badge>
+                          </td>
+                          <td className="text-center">
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              className="me-2"
+                              onClick={() => openModal(product)}
+                            >
+                              ✏️ Edit
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() =>
+                                product._id && handleDelete(product._id)
+                              }
+                            >
+                              🗑️ Hapus
+                            </Button>
+                          </td>
+                        </tr>
+                      ))
                     )}
-                  </td>
-                  <td>
-                    <Link 
-                        href={`/menu/edit/${menu._id}`} 
-                        className="btn btn-sm btn-info me-2"
-                    >
-                        Edit
-                    </Link>
-                    <button 
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(menu._id)}
-                    >
-                        Hapus
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+      </Container>
+
+      {/* Modal Form */}
+      <Modal show={showModal} onHide={closeModal} centered>
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>
+            {editingProduct ? '✏️ Edit Produk' : '➕ Tambah Produk'}
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmit}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Nama Produk</Form.Label>
+              <Form.Control
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="Masukkan nama produk"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Harga (Rp)</Form.Label>
+              <Form.Control
+                type="number"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    price: parseInt(e.target.value) || 0,
+                  })
+                }
+                placeholder="Masukkan harga"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Stock</Form.Label>
+              <Form.Control
+                type="number"
+                value={formData.stock}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    stock: parseInt(e.target.value) || 0,
+                  })
+                }
+                placeholder="Masukkan stock"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Kategori</Form.Label>
+              <Form.Select
+                value={formData.category}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
+              >
+                <option value="Makanan">Makanan</option>
+                <option value="Minuman">Minuman</option>
+                <option value="Snack">Snack</option>
+                <option value="Umum">Umum</option>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={closeModal}>
+              ❌ Batal
+            </Button>
+            <Button variant="primary" type="submit">
+              💾 Simpan
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+    </>
   );
 }
