@@ -1,13 +1,11 @@
-// File: frontend/src/app/menu/input/page.tsx
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-// URL Backend
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000/menu/add'; 
 
-// Import komponen Header
 const ContentHeader = ({ title }: { title: string }) => {
     return (
       <header className="content-header">
@@ -21,47 +19,67 @@ export default function InputMenuPage() {
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
-  const [image, setImage] = useState('');
+  const [fileGambar, setFileGambar] = useState<File | null>(null); 
+  
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [loading, setLoading] = useState(false);
+  const router = useRouter(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     setMessage({ type: '', text: '' });
 
-    // Kirim data ke backend sesuai model 'product.model.js'
-    const newProduct = {
-      name,
-      price: parseFloat(price),
-      stock: parseInt(stock),
-      category,
-      image
-    };
+    const formData = new FormData();
+    
+    formData.append('nama', name);
+    formData.append('harga', price);
+    
+    formData.append('category', category); 
+    formData.append('stock', stock);
+
+    if (fileGambar) {
+      formData.append('gambar', fileGambar); 
+    }
+    
+    const token = localStorage.getItem('kasirToken');
+    if (!token) {
+      setMessage({ type: 'danger', text: 'Sesi habis. Silakan login.' });
+      router.push('/login');
+      return;
+    }
 
     try {
-      const res = await fetch(`${API_URL}/products`, {
+      const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newProduct)
+        body: formData, 
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        }
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error('Gagal menambahkan produk');
+        throw new Error(data.message || 'Gagal menambahkan menu');
       }
 
-      // Reset form dan tampilkan pesan sukses
-      setMessage({ type: 'success', text: 'Menu baru berhasil ditambahkan!' });
+      setMessage({ type: 'success', text: 'Menu baru berhasil ditambahkan dan gambar diupload!' });
       setName('');
       setCategory('');
       setPrice('');
       setStock('');
-      setImage('');
+      setFileGambar(null);
+      setLoading(false);
+
     } catch (error: any) {
-      setMessage({ type: 'danger', text: error.message || 'Terjadi kesalahan' });
+        setLoading(false);
+        setMessage({ type: 'danger', text: error.message || 'Terjadi kesalahan' });
     }
   };
 
   return (
-    <>
+    <div className="container mt-5">
       <ContentHeader title="Input Menu Baru" />
       <Link href="/menu" className="btn btn-outline-secondary mb-3">
         <i className="bi bi-arrow-left-circle-fill"></i> Kembali
@@ -69,7 +87,7 @@ export default function InputMenuPage() {
 
       <div className="content-card">
         {message.text && (
-          <div className={`alert alert-${message.type}`} role="alert">
+          <div className={`alert alert-${message.type === 'danger' ? 'danger' : 'success'}`} role="alert">
             {message.text}
           </div>
         )}
@@ -99,7 +117,6 @@ export default function InputMenuPage() {
                 <option value="Makanan">Makanan</option>
                 <option value="Minuman">Minuman</option>
                 <option value="Cemilan">Cemilan</option>
-                {/* Tambahkan kategori lain jika perlu */}
               </select>
             </div>
           </div>
@@ -107,7 +124,7 @@ export default function InputMenuPage() {
             <div className="col-md-6 mb-3">
               <label htmlFor="harga-produk" className="form-label">Harga (Rp)</label>
               <input 
-                type="number" 
+                type="text" 
                 className="form-control" 
                 id="harga-produk" 
                 value={price}
@@ -127,22 +144,34 @@ export default function InputMenuPage() {
               />
             </div>
           </div>
+          
           <div className="mb-3">
-            <label htmlFor="foto-produk" className="form-label">URL Foto Menu (Opsional)</label>
+            <label htmlFor="foto-produk" className="form-label">Upload Foto Menu (Opsional)</label>
             <input 
-              type="text" 
+              type="file"
               className="form-control" 
               id="foto-produk" 
-              placeholder="https://..."
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
+              accept="image/*"
+              onChange={(e) => {
+                  if (e.target.files) {
+                      setFileGambar(e.target.files[0]);
+                  }
+              }}
             />
+            {fileGambar && (
+                <small className="text-muted mt-2">File dipilih: {fileGambar.name}</small>
+            )}
           </div>
-          <button type="submit" className="btn btn-primary fw-bold">
-            <i className="bi bi-save-fill"></i> Simpan Menu Baru
+
+          <button 
+            type="submit" 
+            className="btn btn-primary fw-bold"
+            disabled={loading}
+          >
+            {loading ? 'Menyimpan...' : 'Simpan Menu Baru'}
           </button>
         </form>
       </div>
-    </>
+    </div>
   );
 }

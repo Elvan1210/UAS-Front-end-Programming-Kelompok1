@@ -1,6 +1,5 @@
 const Product = require('../models/product.model');
 
-// Get semua produk
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ isActive: true }).sort({ name: 1 });
@@ -17,7 +16,6 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-// Get produk by ID
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -40,7 +38,6 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-// Tambah produk baru
 exports.createProduct = async (req, res) => {
   try {
     const { name, price, stock, category, image } = req.body;
@@ -69,7 +66,6 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// Update produk
 exports.updateProduct = async (req, res) => {
   try {
     const { name, price, stock, category, image, isActive } = req.body;
@@ -101,7 +97,6 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// Delete produk (soft delete)
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(

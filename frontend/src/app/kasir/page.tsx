@@ -1,19 +1,16 @@
-// File: frontend/src/app/kasir/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 
-// URL Backend (Sesuaikan jika port-nya beda)
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "http://localhost:5000";
 
-// Tipe data (sesuai model backend Anda)
 interface Product {
   _id: string;
   name: string;
   price: number;
   stock: number;
   category: string;
-  image: string;
+  gambar: string; // 1. Menggunakan 'gambar' agar konsisten
 }
 interface CartItem extends Product {
   quantity: number;
@@ -25,7 +22,6 @@ interface TransactionItem {
     price: number;
 }
 
-// Fungsi format mata uang
 const formatCurrency = (number: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -47,14 +43,11 @@ export default function KasirPage() {
   const [amountPaid, setAmountPaid] = useState('');
   const [change, setChange] = useState(0);
 
-  // State untuk Modal QRIS
   const [qrisModal, setQrisModal] = useState<any>(null);
   const [qrisImage, setQrisImage] = useState<string | null>(null);
   const [qrisTotal, setQrisTotal] = useState(0);
   
-  // 1. Inisialisasi Modal Bootstrap di client-side
   useEffect(() => {
-    // Pastikan ini hanya berjalan di client
     if (typeof window !== "undefined") {
       const bootstrap = require("bootstrap/dist/js/bootstrap.bundle.min.js");
       const modalEl = document.getElementById('qrisModal');
@@ -64,16 +57,27 @@ export default function KasirPage() {
     }
   }, []);
 
-  // 2. Fetch produk saat komponen dimuat
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_URL}/products`);
+      // 1. GANTI /products menjadi /menu
+      const res = await fetch(`${API_URL}/menu`); 
       const productResponse = await res.json();
-      const data: Product[] = productResponse.data || []; // Ambil dari 'data'
-      setProducts(data);
 
-      // Ambil kategori unik
-      const uniqueCategories = ['Semua', ...new Set(data.map(p => p.category))];
+      // 2. TAMBAHKAN MAPPING INI (PENTING!)
+      // Data dari /menu perlu di-format agar sesuai dgn interface Product
+      const formattedData: Product[] = productResponse.map((p: any) => ({
+        _id: p._id,
+        name: p.nama, // 'nama' dari backend
+        price: parseFloat(p.harga) || 0, // 'harga' (string) diubah jadi number
+        stock: p.stock || 0,
+        category: p.category || 'Makanan',
+        gambar: p.gambar // 'gambar' dari backend (URL Cloudinary)
+      }));
+
+      setProducts(formattedData); // 3. Gunakan data yang sudah diformat
+
+
+      const uniqueCategories = ['Semua', ...new Set(formattedData.map(p => p.category))];
       setCategories(uniqueCategories);
     } catch (error) {
       console.error("Gagal mengambil produk:", error);
@@ -84,25 +88,21 @@ export default function KasirPage() {
     fetchProducts();
   }, []);
 
-  // 3. Hitung ulang total harga saat keranjang berubah
   useEffect(() => {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setTotalPrice(total);
     calculateChange(total, amountPaid);
   }, [cart, amountPaid]);
 
-  // 4. Fungsi hitung kembalian
   const calculateChange = (total: number, paid: string) => {
     const paidAmount = parseFloat(paid) || 0;
     const newChange = paidAmount - total;
-    setChange(newChange); // Simpan kembalian di state
+    setChange(newChange);
   };
 
-  // 5. Fungsi Logika Keranjang
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item._id === product._id);
     
-    // Cek stok terbaru dari state products
     const productInStock = products.find(p => p._id === product._id);
     if (!productInStock || productInStock.stock === 0) {
       alert('Stok produk habis!');
@@ -124,6 +124,7 @@ export default function KasirPage() {
 
   const removeFromCart = (productId: string) => {
     const existingItem = cart.find(item => item._id === productId);
+    // Ini baris 114 yang error, _id sudah dihapus:
     if (existingItem) {
       if (existingItem.quantity > 1) {
         setCart(cart.map(item => 
@@ -136,33 +137,35 @@ export default function KasirPage() {
   };
 
 
-  // ===== FUNGSI INI DIPERBAIKI TOTAL =====
-  // 6. Fungsi Menyelesaikan Transaksi
   const completeTransaction = async (method: string) => {
     
-    // A. Siapkan data AGAR SESUAI DENGAN BACKEND
     const cashierName = localStorage.getItem('loggedInUser') || 'Unknown Cashier';
     const paidAmount = (method === 'QRIS') ? totalPrice : (parseFloat(amountPaid) || 0);
-    const changeAmount = (method === 'QRIS') ? 0 : change; // Ambil dari state
+    const changeAmount = (method === 'QRIS') ? 0 : change;
 
     const transactionData = {
-      // Data ini disesuaikan dengan transaction.model.js
-      items: cart.map(item => ({
-        productId: item._id, 
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        subtotal: item.price * item.quantity
-      })),
-      total: totalPrice,        // DULU: totalPrice
-      payment: paidAmount,      // DULU: paymentMethod
-      change: changeAmount,     // DULU: tidak ada
-      cashier: cashierName,     // DULU: tidak ada
-    };
+      // 1. Sesuaikan format 'items' dengan OrderItemSchema
+      items: cart.map(item => ({
+        productId: item._id, 
+        nama: item.name,      // 'name' diubah menjadi 'nama'
+        harga: item.price,    // 'price' diubah menjadi 'harga'
+        quantity: item.quantity
+        // 'subtotal' dihapus karena tidak ada di schema
+      })),
+      
+      // 2. Sesuaikan nama field top-level dengan orderController
+      totalPrice: totalPrice,       // 'total' diubah menjadi 'totalPrice'
+      paymentAmount: paidAmount,  // 'payment' diubah menjadi 'paymentAmount'
+      changeAmount: changeAmount,   // 'change' diubah menjadi 'changeAmount'
+      
+      // 3. Tambahkan paymentMethod (diminta oleh backend)
+      paymentMethod: method
+      
+      // 'cashier' dihapus karena tidak ada di schema
+    };
 
     try {
-      // B. Kirim transaksi ke backend
-      const res = await fetch(`${API_URL}/transactions`, {
+        const res = await fetch(`${API_URL}/api/transactions`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transactionData),
@@ -170,37 +173,24 @@ export default function KasirPage() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        // Tampilkan pesan error spesifik dari backend
         throw new Error(errorData.message || 'Gagal menyimpan transaksi'); 
       }
 
-      // C. HAPUS UPDATE STOK DARI FRONTEND
-      // Backend (transactionController.js) Anda sudah
-      // menangani pengurangan stok. Kita HAPUS bagian ini
-      // agar stok tidak berkurang dua kali.
-
-      // D. Reset Tampilan
       alert(`Pembayaran ${method} berhasil!`);
       setCart([]);
       setAmountPaid('');
       setPaymentMethod('Cash');
       
-      // Tutup modal jika terbuka
       if (qrisModal) qrisModal.hide();
       
-      // Ambil ulang data produk (untuk update stok di UI)
       fetchProducts();
 
     } catch (error: any) {
       console.error(error);
-      // Tampilkan error yang jelas ke kasir
       alert(`Terjadi kesalahan: ${error.message}`);
     }
   };
-  // ==========================================
 
-
-  // 7. Fungsi Tombol "Proses Pembayaran"
   const handleProcessPayment = () => {
     if (cart.length === 0) {
       alert('Keranjang masih kosong!');
@@ -216,7 +206,6 @@ export default function KasirPage() {
       completeTransaction('Cash');
 
     } else if (paymentMethod === 'QRIS') {
-      // Tampilkan Modal QRIS
       const qrData = `SIMULASI_BAYAR_KE_KANTIN_SEBESAR_${totalPrice}`;
       setQrisImage(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`);
       setQrisTotal(totalPrice);
@@ -224,7 +213,6 @@ export default function KasirPage() {
     }
   };
 
-  // 8. Filter Produk untuk Ditampilkan
   const filteredProducts = products.filter(p => 
     p.stock > 0 &&
     (currentCategory === 'Semua' || p.category === currentCategory) &&
@@ -235,7 +223,6 @@ export default function KasirPage() {
   return (
     <div className="pos-container cashier-container" style={{ padding: '2rem' }}>
       
-      {/* Kolom Produk (Kiri) */}
       <div className="product-pane">
         <header className="content-header" style={{ marginBottom: '1rem', padding: 0 }}>
           <h1>Pilih Menu</h1>
@@ -271,8 +258,9 @@ export default function KasirPage() {
               <div key={product._id} className="col-lg-4 col-md-6 col-sm-6 col-6 mb-4" onClick={() => addToCart(product)}>
                 <div className="card h-100 product-item shadow-sm border-0">
                   <img 
-                    src={product.image || 'https://via.placeholder.com/150'} 
-                    className="card-img-top" 
+                    // GANTI BARIS INI:
+                    src={product.gambar || 'https://via.placeholder.com/150'} 
+                    className="card-img-top"
                     alt={product.name} 
                     style={{ height: '150px', objectFit: 'cover' }}
                   />
@@ -396,7 +384,6 @@ export default function KasirPage() {
               <p>Silakan scan QR code di bawah ini untuk membayar:</p>
               <h3 className="fw-bold text-primary">{formatCurrency(qrisTotal)}</h3>
               
-              {/* Tampilkan gambar HANYA jika qrisImage tidak null/kosong */}
               {qrisImage && (
                 <img 
                   src={qrisImage} 

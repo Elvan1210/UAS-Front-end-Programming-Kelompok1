@@ -16,8 +16,19 @@ const menuSchema = new Schema({
     type: String,
     trim: true,
     default: null
-  }
-}, {
+  },
+  stock: { 
+    type: Number, 
+    required: true,
+    default: 0
+  },
+  category: {
+    type: String,
+    required: true,
+    default: 'Makanan'
+  },
+}, 
+{
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://localhost:5000";
 
 interface Product {
   _id: string;
@@ -33,6 +34,8 @@ export default function KelolaMenuPage() {
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<any>(null);
   const [currentProduct, setCurrentProduct] = useState<any | null>(null);
+  const [newFileGambar, setNewFileGambar] = useState<File | null>(null); 
+  const router = useRouter(); 
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -47,11 +50,23 @@ export default function KelolaMenuPage() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/products`);
+      const res = await fetch(`${API_URL}/menu/`); 
       const productResponse = await res.json();
-      if (!productResponse.success)
+      
+      if (!res.ok)
         throw new Error(productResponse.message || "Gagal mengambil data produk");
-      setProducts(productResponse.data || []);
+        
+      const formattedProducts = productResponse.map((p: any) => ({
+          ...p,
+          name: p.nama,
+          price: parseFloat(p.harga) || 0,
+          image: p.gambar,
+          category: p.category || 'Makanan', 
+          stock: p.stock || 0,
+      }));
+        
+      setProducts(formattedProducts || []);
+
     } catch (error) {
       console.error("Gagal mengambil produk:", error);
     }
@@ -59,13 +74,17 @@ export default function KelolaMenuPage() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('kasirToken');
+    if (!token) {
+        router.push('/login');
+    }
     fetchProducts();
-  }, []);
+  }, [router]);
 
   const handleDelete = async (id: string) => {
     if (confirm("Apakah Anda yakin ingin menghapus menu ini?")) {
       try {
-        await fetch(`${API_URL}/products/${id}`, { method: "DELETE" });
+        await fetch(`${API_URL}/menu/${id}`, { method: "DELETE" }); 
         fetchProducts();
       } catch (error) {
         console.error("Gagal menghapus produk:", error);
@@ -74,6 +93,7 @@ export default function KelolaMenuPage() {
   };
 
   const openEditModal = (product: Product) => {
+    setNewFileGambar(null); 
     setCurrentProduct(product);
     if (editModal) editModal.show();
   };
@@ -81,19 +101,32 @@ export default function KelolaMenuPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProduct) return;
+    
+    const formData = new FormData();
+    
+    formData.append('nama', currentProduct.name); 
+    formData.append('harga', currentProduct.price.toString());
+    
+    formData.append('category', currentProduct.category);
+    formData.append('stock', currentProduct.stock.toString());
 
-    const dataToSend = {
-      ...currentProduct,
-      price: parseFloat(currentProduct.price) || 0,
-      stock: parseInt(currentProduct.stock) || 0,
-    };
+    if (newFileGambar) {
+        formData.append('gambar', newFileGambar);
+    } else if (currentProduct.image === null || currentProduct.image === "") {
+        formData.append('gambar', '');
+    }
 
     try {
-      await fetch(`${API_URL}/products/${currentProduct._id}`, {
+      const res = await fetch(`${API_URL}/menu/update/${currentProduct._id}`, { 
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
+        body: formData,
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Gagal mengupdate produk");
+      }
+      
       fetchProducts();
       if (editModal) editModal.hide();
     } catch (error) {
@@ -107,6 +140,12 @@ export default function KelolaMenuPage() {
     if (currentProduct) {
       const { name, value, type } = e.target;
       
+      if (type === 'file' && e.target instanceof HTMLInputElement && e.target.files && e.target.files[0]) {
+          setNewFileGambar(e.target.files[0]);
+          setCurrentProduct({ ...currentProduct, image: URL.createObjectURL(e.target.files[0]) }); // Tampilkan preview (opsional)
+          return;
+      }
+      
       if (type === "number") {
         if (value === "") {
           setCurrentProduct({ ...currentProduct, [name]: "" });
@@ -118,11 +157,17 @@ export default function KelolaMenuPage() {
       }
     }
   };
+  
+  const removeExistingImage = () => {
+    if (currentProduct) {
+        setCurrentProduct({ ...currentProduct, image: "" });
+        setNewFileGambar(null);
+    }
+  };
 
   return (
     <>
       <ContentHeader title="Lihat & Kelola Menu" />
-
       <Link href="/menu" className="btn btn-outline-secondary mb-3">
         <i className="bi bi-arrow-left-circle-fill"></i> Kembali
       </Link>
@@ -155,7 +200,7 @@ export default function KelolaMenuPage() {
                   <tr key={product._id}>
                     <td>
                       <img
-                        src={product.image || "https://via.placeholder.com/100"}
+                        src={product.image || "https://via.placeholder.com/100/CCCCCC/808080?text=NO+IMG"}
                         alt={product.name}
                         style={{
                           width: "80px",
@@ -199,7 +244,7 @@ export default function KelolaMenuPage() {
       <div className="modal fade" id="editProductModal" tabIndex={-1}>
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
-            <form onSubmit={handleEditSubmit}>
+            <form onSubmit={handleEditSubmit}> 
               <div className="modal-header">
                 <h5 className="modal-title">Edit Menu</h5>
                 <button
@@ -262,17 +307,43 @@ export default function KelolaMenuPage() {
                         required
                       />
                     </div>
+                    
                     <div className="mb-3">
-                      <label htmlFor="edit-image" className="form-label">URL Foto Menu</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="edit-image"
-                        name="image"
-                        value={currentProduct.image || ""}
-                        onChange={handleModalInputChange}
-                      />
+                        <label className="form-label d-block">Foto Menu Saat Ini:</label>
+                        {(currentProduct.image) ? (
+                            <div className="d-flex align-items-center mb-2">
+                                <img
+                                    src={currentProduct.image}
+                                    alt={currentProduct.name}
+                                    style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }}
+                                    className="img-thumbnail me-3"
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-danger"
+                                    onClick={removeExistingImage}
+                                >
+                                    Hapus Foto
+                                </button>
+                            </div>
+                        ) : (
+                            <p className="text-muted">Tidak ada foto terdaftar.</p>
+                        )}
+                        
+                        <label htmlFor="edit-file" className="form-label mt-2">Ganti Foto Menu</label>
+                        <input
+                          type="file"
+                          className="form-control"
+                          id="edit-file"
+                          name="file"
+                          accept="image/*"
+                          onChange={handleModalInputChange}
+                        />
+                        {newFileGambar && (
+                            <small className="text-success">File baru siap diupload: {newFileGambar.name}</small>
+                        )}
                     </div>
+                    
                   </>
                 )}
               </div>

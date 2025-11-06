@@ -1,29 +1,25 @@
+// transactionRoutes.js (BARU)
+
 const express = require('express');
 const router = express.Router();
+
+// 1. Biarkan import ini untuk fungsi GET, DELETE, dll.
 const {
-  createTransaction,
-  getAllTransactions, // <-- Ganti dari getTransactions
-  getTransactionById, // <-- Tambahkan ini
-  getDailyReport,  
-  deleteTransactionById,   // <-- Tambahkan ini
-} = require('../controllers/transactionController.js'); // Pastikan .js jika ada
+  getAllTransactions,
+  getTransactionById,
+  getDailyReport,  
+  deleteTransactionById,
+} = require('../controllers/transactionController.js');
 
-// POST /api/transactions
-// (Sudah benar)
-router.post('/', createTransaction);
+// 2. TAMBAHKAN import ini untuk fungsi create (POST)
+const { createOrder } = require('../controllers/orderController.js');
 
-// GET /api/transactions
-// (Perbaiki nama fungsinya)
+// 3. GANTI baris ini untuk menggunakan fungsi yang benar
+router.post('/', createOrder); // <-- INI SOLUSINYA
+
 router.get('/', getAllTransactions);
-
-// GET /api/transactions/:id
-// (Tambahkan route ini)
 router.get('/:id', getTransactionById);
-
-// GET /api/transactions/report/daily
-// (Tambahkan route ini untuk laporan)
 router.get('/report/daily', getDailyReport);
-
 router.delete('/:id', deleteTransactionById);
 
 module.exports = router;

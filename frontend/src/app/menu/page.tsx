@@ -1,10 +1,7 @@
-// File: frontend/src/app/menu/page.tsx
 "use client";
 
 import Link from "next/link";
-// Import komponen Header
 const ContentHeader = ({ title }: { title: string }) => {
-    // (Anda bisa membuat ini komponen terpisah untuk di-import)
     return (
       <header className="content-header">
         <h1>{title}</h1>

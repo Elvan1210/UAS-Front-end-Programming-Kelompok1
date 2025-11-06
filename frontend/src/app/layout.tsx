@@ -1,5 +1,4 @@
-// File: frontend/src/app/layout.tsx
-"use client"; // Ubah menjadi Client Component
+"use client";
 
 import "./globals.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -8,12 +7,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// Komponen Sidebar
 const Sidebar = () => {
   const pathname = usePathname();
 
   const handleLogout = () => {
-    // Di aplikasi React, kita akan hapus token/user dari localStorage
     localStorage.removeItem("loggedInUser"); 
     window.location.href = '/login';
   };
@@ -32,7 +29,7 @@ const Sidebar = () => {
           </li>
           <li className="nav-item">
             <Link href="/kasir" className={`nav-link ${pathname === '/kasir' ? 'active' : ''}`}>
-              <i className="bi bi-cart-fill"></i> Halaman Kasir (POS)
+              <i className="bi bi-cart-fill"></i> Halaman Kasir
             </Link>
           </li>
           <li className="nav-item">
@@ -54,12 +51,10 @@ const Sidebar = () => {
   );
 };
 
-// Komponen Header Konten
 const ContentHeader = ({ title }: { title: string }) => {
   const [userEmail, setUserEmail] = useState("Loading...");
 
   useEffect(() => {
-    // Ambil data user dari local storage saat di client side
     const user = localStorage.getItem("loggedInUser");
     if (user) {
       setUserEmail(user);
@@ -92,7 +87,6 @@ const ContentHeader = ({ title }: { title: string }) => {
 };
 
 
-// Komponen Layout Utama
 export default function RootLayout({
   children,
 }: {
@@ -100,16 +94,12 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   
-  // Jangan tampilkan sidebar di halaman login
   const isLoginPage = pathname === '/login'; 
-  // Juga jangan tampilkan di halaman root (jika page.tsx ada di root)
+
   const isRootPage = pathname === '/'; 
 
-  // Anda mungkin perlu menyesuaikan ini. 
-  // Asumsi: /login adalah login, / adalah landing page (juga tanpa sidebar)
   const showLayout = !isLoginPage && !isRootPage;
 
-  // Import Bootstrap JS di client-side
   useEffect(() => {
     require("bootstrap/dist/js/bootstrap.bundle.min.js");
   }, []);
@@ -125,7 +115,6 @@ export default function RootLayout({
             </div>
           </>
         ) : (
-          // Tampilkan halaman login/root secara penuh
           children
         )}
       </body>

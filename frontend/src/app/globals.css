@@ -1,11 +1,5 @@
-/* ===================================================================
-    CSS Kustom untuk Tampilan Dribbble
-   (PASTIKAN HANYA ADA KODE INI DI FILE GLOBALS.CSS)
-=================================================================== */
-
-/* Variabel Warna (Terinspirasi Dribbble) */
 :root {
-    --primary-color: #6C5CE7; /* Ungu/Biru */
+    --primary-color: #6C5CE7;
     --secondary-color: #A29BFE;
     --dark-color: #2D3436;
     --light-color: #F8F9FA;
@@ -20,9 +14,6 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ---------------------------------- */
-/* 1. Layout Sidebar                  */
-/* ---------------------------------- */
 .sidebar {
     width: 260px;
     height: 100vh;
@@ -69,16 +60,12 @@ body {
     font-weight: 600;
 }
 
-/* Konten Utama (Geser ke kanan) */
 .main-content {
-    margin-left: 260px; /* Lebar sidebar */
+    margin-left: 260px;
     padding: 2rem;
     width: calc(100% - 260px);
 }
 
-/* ---------------------------------- */
-/* 2. Header Konten Utama             */
-/* ---------------------------------- */
 .content-header {
     display: flex;
     justify-content: space-between;
@@ -119,11 +106,6 @@ body {
     color: var(--dark-color);
 }
 
-/* ---------------------------------- */
-/* 3. Komponen Spesifik Halaman       */
-/* ---------------------------------- */
-
-/* --- Dashboard --- */
 .stat-card {
     background-color: var(--card-bg);
     border-radius: 12px;
@@ -171,7 +153,6 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
-/* --- Kasir (POS) --- */
 .pos-container {
     display: flex;
     flex-wrap: wrap;
@@ -227,7 +208,6 @@ body {
     margin-top: 1rem;
 }
 
-/* --- Halaman Lain (Tabel, Form) --- */
 .content-card {
     background-color: var(--card-bg);
     border-radius: 12px;
@@ -240,7 +220,6 @@ body {
     border-color: var(--border-color);
 }
 
-/* Login Page */
 .login-container {
     display: flex;
     align-items: center;
@@ -250,8 +229,28 @@ body {
     background-color: var(--light-color);
 }
 
-/* Hapus padding & margin default dari next.js */
 html, body {
     padding: 0;
     margin: 0;
 }
+
+/* --- CSS KUSTOM KASIR UNTUK MEMPERBAIKI TINGGI KARTU --- */
+
+.kasir-img-container {
+    /* Wadah dengan tinggi pasti */
+    height: 150px !important; 
+    width: 100%;
+    overflow: hidden !important;
+    border-top-left-radius: 0.25rem !important; 
+    border-top-right-radius: 0.25rem !important;
+}
+
+.kasir-img-container img {
+    /* Memaksa gambar untuk mengisi wadah tanpa distorsi */
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important; 
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* --- AKHIR CSS KUSTOM --- */
