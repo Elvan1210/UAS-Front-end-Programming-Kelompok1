@@ -1,6 +1,8 @@
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-import "./.next/dev/types/routes.d.ts";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Mungkin ada konfigurasi di sini
+  // seperti reactStrictMode: true,
+  // atau images: { ... }
+};
 
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+module.exports = nextConfig;

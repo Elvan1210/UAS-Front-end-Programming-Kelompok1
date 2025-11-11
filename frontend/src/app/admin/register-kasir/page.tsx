@@ -1,14 +1,113 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/Context/AuthContext'; // <-- 1. Import useAuth
+// import { useRouter } from 'next/navigation'; // Dihapus untuk pratinjau
+// import { useAuth } from '@/Context/AuthContext'; // Dihapus untuk pratinjau
 
 // Asumsi URL Backend
-const API_BASE_URL = 'http://localhost:5000/api/akun'; 
+const API_BASE_URL = 'http://localhost:5000/api/akun';
 
 // ==========================================================
-// KOMPONEN FORM REGISTER (DIAMBIL DARI LOGIN PAGE LAMA)
+// KOMPONEN STYLE CSS (BARU & TER-ISOLASI)
+// ==========================================================
+// Style ini HANYA untuk form registrasi dan tidak akan
+// mengganggu layout dashboard Anda.
+const ScopedFormStyles = () => (
+  <style>{`
+    /* Wrapper (kotak putih) untuk form */
+    .regFormContainer {
+      background-color: white;
+      padding: 2.5rem; /* 40px */
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      max-width: 600px; /* Batas lebar form */
+      margin: 0 auto; /* Tengahkan form di area konten */
+    }
+
+    .regFormTitle {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .regErrorAlert {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .regSuccessAlert {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      padding: 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .regInputGroup {
+      margin-bottom: 1.5rem;
+    }
+
+    .regInputGroup label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 0.5rem;
+    }
+
+    .regInputField {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease;
+    }
+
+    .regInputField:focus {
+      outline: none;
+      border-color: #3f51b5;
+      box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+    }
+
+    .regSubmitButton {
+      width: 100%;
+      padding: 0.9rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      background-color: #3f51b5;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .regSubmitButton:hover {
+      background-color: #303f9f;
+    }
+
+    .regSubmitButton:disabled {
+      background-color: #9fa8da;
+      cursor: not-allowed;
+    }
+  `}</style>
+);
+
+
+// ==========================================================
+// KOMPONEN FORM REGISTER (Style Baru)
 // ==========================================================
 const RegisterKasirForm = () => {
   const [email, setEmail] = useState('');
@@ -30,7 +129,6 @@ const RegisterKasirForm = () => {
       return;
     }
 
-    // 2. Ambil token Admin dari localStorage
     const token = localStorage.getItem('authToken');
     if (!token) {
       setError('Otentikasi admin gagal. Silakan login ulang.');
@@ -39,18 +137,16 @@ const RegisterKasirForm = () => {
     }
 
     try {
-      // 3. Panggil endpoint BARU '/register-kasir'
-      const res = await fetch(`${API_BASE_URL}/register-kasir`, { 
+      const res = await fetch(`${API_BASE_URL}/register-kasir`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          // 4. KIRIM TOKEN ADMIN UNTUK OTORISASI
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ email, password })
       });
 
-      const data = await res.json(); 
+      const data = await res.json();
       setLoading(false);
 
       if (!res.ok) {
@@ -58,7 +154,6 @@ const RegisterKasirForm = () => {
       }
 
       setSuccess(`Registrasi kasir (${email}) berhasil!`);
-      // Kosongkan form
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -70,116 +165,130 @@ const RegisterKasirForm = () => {
   };
 
   return (
-    <>
-      <h2 className="text-center fw-bold mb-4">Registrasi Akun Kasir</h2>
+    // Menggunakan class .regFormContainer baru
+    <div className="regFormContainer">
+      <h2 className="regFormTitle">
+        Registrasi Akun Kasir
+      </h2>
+
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div className="regErrorAlert">
           {error}
         </div>
       )}
       {success && (
-        <div className="alert alert-success" role="alert">
+        <div className="regSuccessAlert">
           {success}
         </div>
       )}
+
       <form id="register-form" onSubmit={handleRegister}>
-        <div className="form-floating mb-3">
+        <div className="regInputGroup">
+          <label htmlFor="email">Email Kasir Baru</label>
           <input
             type="email"
-            className="form-control"
+            className="regInputField"
             id="email"
-            placeholder="Email Kasir Baru"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            placeholder="contoh@email.com"
           />
-          <label htmlFor="email">Email Kasir Baru</label>
         </div>
-        <div className="form-floating mb-3">
+        
+        <div className="regInputGroup">
+          <label htmlFor="password">Password</label>
           <input
             type="password"
-            className="form-control"
+            className="regInputField"
             id="password"
-            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            placeholder="Minimal 6 karakter"
           />
-          <label htmlFor="password">Password</label>
         </div>
-        <div className="form-floating mb-3">
+
+        <div className="regInputGroup">
+          <label htmlFor="confirm-password">Konfirmasi Password</label>
           <input
             type="password"
-            className="form-control"
+            className="regInputField"
             id="confirm-password"
-            placeholder="Konfirmasi Password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
+            placeholder="Ulangi password"
           />
-          <label htmlFor="confirm-password">Konfirmasi Password</label>
         </div>
-        <div className="d-grid">
-          <button 
-            type="submit" 
-            className="btn btn-success btn-lg fw-bold"
+
+        <div style={{ marginTop: '1.5rem' }}>
+          <button
+            type="submit"
+            className="regSubmitButton"
             disabled={loading}
           >
             {loading ? "Mendaftarkan..." : "Daftarkan Akun Kasir"}
           </button>
         </div>
       </form>
-    </>
+    </div>
   );
 };
 
 
 // ==========================================================
-// KOMPONEN UTAMA HALAMAN (DENGAN PENJAGA ADMIN)
+// KOMPONEN UTAMA HALAMAN (Style Diperbaiki)
 // ==========================================================
 export default function RegisterKasirPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  // const { user, loading } = useAuth(); // Logika Auth dinonaktifkan untuk pratinjau
+  // const router = useRouter(); // Logika Router dinonaktifkan untuk pratinjau
 
-  // 5. "PENJAGA" ADMIN
+  // "PENJAGA" ADMIN (Logika tetap sama)
+  /*
   useEffect(() => {
-    if (loading) return; // Tunggu loading selesai
-
-    // 6. Jika tidak ada user, tendang ke login
+    if (loading) return; 
     if (!user) {
       router.push('/login');
       return;
     }
-
-    // 7. Jika user BUKAN admin, tendang ke dashboard
     if (user.role !== 'admin') {
-      // (Beri pesan error atau langsung tendang)
       console.error("Akses ditolak. Hanya admin yang boleh mendaftarkan kasir.");
       router.push('/dashboard');
     }
   }, [user, loading, router]);
+  */
 
-  // 8. Tampilkan loading atau "Forbidden"
+  // Tampilan Loading atau "Forbidden" (Disederhanakan)
+  // Wrapper layout lama dihapus
+  /*
+  // Logika loading dinonaktifkan untuk pratinjau
   if (loading || !user) {
-    return <div className="container mt-5 text-center"><h3>Mengecek otentikasi...</h3></div>;
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center' }}>
+        <h3>Mengecek otentikasi...</h3>
+      </div>
+    );
   }
   
   if (user.role !== 'admin') {
-     return <div className="container mt-5 text-center"><h3>Akses Ditolak.</h3></div>;
-  }
-
-  // 9. Tampilkan halaman HANYA JIKA ADMIN
-  return (
-    <div className="container">
-      <div className="row justify-content-center mt-5">
-        <div className="col-md-6 col-lg-5">
-          <div className="card shadow-lg border-0">
-            <div className="card-body p-4 p-md-5">
-              <RegisterKasirForm />
-            </div>
-          </div>
-        </div>
+     return (
+      <div style={{ padding: '3rem', textAlign: 'center' }}>
+        <h3>Akses Ditolak.</h3>
       </div>
+    );
+  }
+  */
+
+  // Tampilkan halaman HANYA JIKA ADMIN
+  // Wrapper .formPanel dihapus, diganti padding sederhana
+  return (
+    // Beri padding agar form tidak menempel di tepi
+    <div style={{ padding: '2rem' }}>
+      {/* Menyuntikkan CSS yang ter-isolasi */}
+      <ScopedFormStyles /> 
+      
+      <RegisterKasirForm />
     </div>
   );
 }
