@@ -15,6 +15,12 @@ const akunSchema = new Schema({
     type: String,
     required: [true, 'Password wajib diisi'],
     minlength: [6, 'Password minimal 6 karakter'] 
+  },
+  role: {
+    type: String,
+    required: true,
+    enum: ['admin', 'kasir'],
+    default: 'kasir'
   }
 }, {
   timestamps: true, 

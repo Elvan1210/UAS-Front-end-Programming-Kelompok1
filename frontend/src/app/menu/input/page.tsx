@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+// 1. IMPORT 'useEffect' dan 'useAuth'
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/Context/AuthContext"; // <-- IMPORT AUTH
 
 const API_URL = 'http://localhost:5000/menu/add'; 
 
@@ -25,6 +27,22 @@ export default function InputMenuPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter(); 
 
+  // <-- 2. TAMBAHKAN PENJAGA AUTH
+  const { user, loading: authLoading } = useAuth();
+
+  // <-- 3. TAMBAHKAN 'useEffect' UNTUK PROTEKSI HALAMAN
+  useEffect(() => {
+    // Tunggu sampai auth selesai loading
+    if (authLoading) {
+      return; 
+    }
+    // Jika tidak ada user, "mental" ke login
+    if (!user) {
+      router.push('/login');
+    }
+    // Jika ada user, biarkan (tampilkan halaman)
+  }, [user, authLoading, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -34,7 +52,6 @@ export default function InputMenuPage() {
     
     formData.append('nama', name);
     formData.append('harga', price);
-    
     formData.append('category', category); 
     formData.append('stock', stock);
 
@@ -42,8 +59,12 @@ export default function InputMenuPage() {
       formData.append('gambar', fileGambar); 
     }
     
-    const token = localStorage.getItem('kasirToken');
+    // <-- 4. PERBAIKI NAMA TOKEN DI SINI
+    const token = localStorage.getItem('authToken'); // <-- UBAH DARI 'kasirToken'
+    
     if (!token) {
+      // Seharusnya ini tidak akan terjadi karena sudah dijaga 'useEffect'
+      // Tapi kita biarkan sebagai pengaman ganda
       setMessage({ type: 'danger', text: 'Sesi habis. Silakan login.' });
       router.push('/login');
       return;
@@ -54,7 +75,7 @@ export default function InputMenuPage() {
         method: 'POST',
         body: formData, 
         headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`, // <-- Token ini sekarang benar
         }
       });
 
@@ -64,12 +85,17 @@ export default function InputMenuPage() {
         throw new Error(data.message || 'Gagal menambahkan menu');
       }
 
-      setMessage({ type: 'success', text: 'Menu baru berhasil ditambahkan dan gambar diupload!' });
+      setMessage({ type: 'success', text: 'Menu baru berhasil ditambahkan!' });
       setName('');
       setCategory('');
       setPrice('');
       setStock('');
       setFileGambar(null);
+      
+      // Reset input file (cara standar)
+      const fileInput = document.getElementById('foto-produk') as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+
       setLoading(false);
 
     } catch (error: any) {
@@ -78,6 +104,17 @@ export default function InputMenuPage() {
     }
   };
 
+  // <-- 5. TAMBAHKAN GERBANG LOADING AUTH
+  // Ini mencegah "kedipan" form sebelum redirect
+  if (authLoading || !user) {
+    return (
+      <div className="container mt-5 text-center">
+        <h3>Mengecek otentikasi...</h3>
+      </div>
+    );
+  }
+
+  // <-- 6. TAMPILKAN HALAMAN JIKA SUDAH LOLOS
   return (
     <div className="container mt-5">
       <ContentHeader title="Input Menu Baru" />
@@ -124,7 +161,7 @@ export default function InputMenuPage() {
             <div className="col-md-6 mb-3">
               <label htmlFor="harga-produk" className="form-label">Harga (Rp)</label>
               <input 
-                type="text" 
+                type="text" // Anda mungkin mau ganti ke "number"
                 className="form-control" 
                 id="harga-produk" 
                 value={price}

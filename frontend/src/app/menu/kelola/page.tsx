@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+// 1. IMPORT hook yang diperlukan
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/Context/AuthContext"; // <-- 2. IMPORT AUTH CONTEXT
 
 const API_URL = "http://localhost:5000";
 
@@ -31,11 +33,16 @@ const ContentHeader = ({ title }: { title: string }) => (
 
 export default function KelolaMenuPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  // 'loading' ini untuk 'fetchProducts', BUKAN auth
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<any>(null);
   const [currentProduct, setCurrentProduct] = useState<any | null>(null);
-  const [newFileGambar, setNewFileGambar] = useState<File | null>(null); 
-  const router = useRouter(); 
+  const [newFileGambar, setNewFileGambar] = useState<File | null>(null);
+  const router = useRouter();
+
+  // <-- 3. AMBIL STATUS AUTH DARI CONTEXT
+  // Kita pakai 'authLoading' agar tidak bentrok dengan state 'loading' Anda
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -47,44 +54,53 @@ export default function KelolaMenuPage() {
     }
   }, []);
 
-  const fetchProducts = async () => {
+  // <-- 4. KITA BUNGKUS fetchProducts DENGAN useCallback
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/menu/`); 
+      const res = await fetch(`${API_URL}/menu/`);
       const productResponse = await res.json();
-      
+
       if (!res.ok)
         throw new Error(productResponse.message || "Gagal mengambil data produk");
-        
-      const formattedProducts = productResponse.map((p: any) => ({
-          ...p,
-          name: p.nama,
-          price: parseFloat(p.harga) || 0,
-          image: p.gambar,
-          category: p.category || 'Makanan', 
-          stock: p.stock || 0,
-      }));
-        
-      setProducts(formattedProducts || []);
 
+      const formattedProducts = productResponse.map((p: any) => ({
+        ...p,
+        name: p.nama,
+        price: parseFloat(p.harga) || 0,
+        image: p.gambar,
+        category: p.category || 'Makanan',
+        stock: p.stock || 0,
+      }));
+
+      setProducts(formattedProducts || []);
     } catch (error) {
       console.error("Gagal mengambil produk:", error);
     }
     setLoading(false);
-  };
+  }, []); // Dependensi kosong karena tidak bergantung state/props
 
+  // <-- 5. UBAH TOTAL LOGIC useEffect INI (LOGIC PROTEKSI)
   useEffect(() => {
-    const token = localStorage.getItem('kasirToken');
-    if (!token) {
-        router.push('/login');
+    // 1. Tunggu sampai context selesai mengecek auth
+    if (authLoading) {
+      return; // Jangan lakukan apa-apa
     }
-    fetchProducts();
-  }, [router]);
+
+    // 2. Auth selesai dicek, kita lihat hasilnya
+    if (!user) {
+      // Jika TIDAK ada user, "mental" ke login
+      router.push('/login');
+    } else {
+      // Jika ADA user, baru ambil data produk
+      fetchProducts();
+    }
+  }, [user, authLoading, router, fetchProducts]); // Ini adalah dependensi yang benar
 
   const handleDelete = async (id: string) => {
     if (confirm("Apakah Anda yakin ingin menghapus menu ini?")) {
       try {
-        await fetch(`${API_URL}/menu/${id}`, { method: "DELETE" }); 
+        await fetch(`${API_URL}/menu/${id}`, { method: "DELETE" });
         fetchProducts();
       } catch (error) {
         console.error("Gagal menghapus produk:", error);
@@ -93,7 +109,7 @@ export default function KelolaMenuPage() {
   };
 
   const openEditModal = (product: Product) => {
-    setNewFileGambar(null); 
+    setNewFileGambar(null);
     setCurrentProduct(product);
     if (editModal) editModal.show();
   };
@@ -101,32 +117,31 @@ export default function KelolaMenuPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProduct) return;
-    
+
     const formData = new FormData();
-    
-    formData.append('nama', currentProduct.name); 
+
+    formData.append('nama', currentProduct.name);
     formData.append('harga', currentProduct.price.toString());
-    
     formData.append('category', currentProduct.category);
     formData.append('stock', currentProduct.stock.toString());
 
     if (newFileGambar) {
-        formData.append('gambar', newFileGambar);
+      formData.append('gambar', newFileGambar);
     } else if (currentProduct.image === null || currentProduct.image === "") {
-        formData.append('gambar', '');
+      formData.append('gambar', '');
     }
 
     try {
-      const res = await fetch(`${API_URL}/menu/update/${currentProduct._id}`, { 
+      const res = await fetch(`${API_URL}/menu/update/${currentProduct._id}`, {
         method: "PUT",
         body: formData,
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Gagal mengupdate produk");
       }
-      
+
       fetchProducts();
       if (editModal) editModal.hide();
     } catch (error) {
@@ -139,13 +154,13 @@ export default function KelolaMenuPage() {
   ) => {
     if (currentProduct) {
       const { name, value, type } = e.target;
-      
+
       if (type === 'file' && e.target instanceof HTMLInputElement && e.target.files && e.target.files[0]) {
-          setNewFileGambar(e.target.files[0]);
-          setCurrentProduct({ ...currentProduct, image: URL.createObjectURL(e.target.files[0]) }); // Tampilkan preview (opsional)
-          return;
+        setNewFileGambar(e.target.files[0]);
+        setCurrentProduct({ ...currentProduct, image: URL.createObjectURL(e.target.files[0]) }); // Tampilkan preview (opsional)
+        return;
       }
-      
+
       if (type === "number") {
         if (value === "") {
           setCurrentProduct({ ...currentProduct, [name]: "" });
@@ -157,14 +172,28 @@ export default function KelolaMenuPage() {
       }
     }
   };
-  
+
   const removeExistingImage = () => {
     if (currentProduct) {
-        setCurrentProduct({ ...currentProduct, image: "" });
-        setNewFileGambar(null);
+      setCurrentProduct({ ...currentProduct, image: "" });
+      setNewFileGambar(null);
     }
   };
 
+  // <-- 6. TAMBAHKAN "GERBANG LOADING" UNTUK AUTH
+  // Ini akan menampilkan "Loading..." halaman penuh SEBELUM
+  // halaman kelola Anda dirender, ini mencegah "kedipan".
+  if (authLoading || !user) {
+    return (
+      <div className="container mt-5 text-center">
+        <h3>Mengecek otentikasi...</h3>
+        {/* Anda bisa tambahkan spinner di sini */}
+      </div>
+    );
+  }
+
+  // <-- 7. KODE RETURN ANDA DI BAWAH INI SEKARANG AMAN
+  // Ini hanya akan dieksekusi jika 'authLoading' selesai DAN 'user' ada.
   return (
     <>
       <ContentHeader title="Lihat & Kelola Menu" />
@@ -241,10 +270,11 @@ export default function KelolaMenuPage() {
         </div>
       </div>
 
+      {/* */}
       <div className="modal fade" id="editProductModal" tabIndex={-1}>
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
-            <form onSubmit={handleEditSubmit}> 
+            <form onSubmit={handleEditSubmit}>
               <div className="modal-header">
                 <h5 className="modal-title">Edit Menu</h5>
                 <button
