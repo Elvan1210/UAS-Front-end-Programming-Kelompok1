@@ -43,6 +43,12 @@ const OrderSchema = new Schema(
       required: true,
     },
 
+    paymentMethod: {
+      type: String,
+      required: false, // Kita buat 'false' agar data lama tidak error
+      default: 'N/A'  // Beri default 'N/A'
+    },
+
     status: {
       type: String,
       enum: ['completed', 'pending_sync'], 

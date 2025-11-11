@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+// <-- 1. IMPORT Modal & Button dari React Bootstrap
+import { Modal, Button } from 'react-bootstrap';
 
 const API_URL = "http://localhost:5000";
 
+// Interface Anda
 interface Product {
   _id: string;
   name: string;
   price: number;
   stock: number;
   category: string;
-  gambar: string; // 1. Menggunakan 'gambar' agar konsisten
+  gambar: string;
 }
 interface CartItem extends Product {
   quantity: number;
@@ -22,6 +25,7 @@ interface TransactionItem {
     price: number;
 }
 
+// Fungsi formatCurrency
 const formatCurrency = (number: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -43,40 +47,35 @@ export default function KasirPage() {
   const [amountPaid, setAmountPaid] = useState('');
   const [change, setChange] = useState(0);
 
-  const [qrisModal, setQrisModal] = useState<any>(null);
+  // <-- 2. State untuk modal QRIS
+  const [showQrisModal, setShowQrisModal] = useState(false);
   const [qrisImage, setQrisImage] = useState<string | null>(null);
   const [qrisTotal, setQrisTotal] = useState(0);
   
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const bootstrap = require("bootstrap/dist/js/bootstrap.bundle.min.js");
-      const modalEl = document.getElementById('qrisModal');
-      if (modalEl) {
-        setQrisModal(new bootstrap.Modal(modalEl));
-      }
-    }
-  }, []);
+  // <-- 3. State baru untuk modal sukses
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successData, setSuccessData] = useState({ 
+    method: '', 
+    total: 0, 
+    change: 0 
+  });
+
+  // <-- 4. useEffect untuk 'require' bootstrap sudah dihapus
+  // Kita tidak memerlukannya lagi
 
   const fetchProducts = async () => {
     try {
-      // 1. GANTI /products menjadi /menu
       const res = await fetch(`${API_URL}/menu`); 
       const productResponse = await res.json();
-
-      // 2. TAMBAHKAN MAPPING INI (PENTING!)
-      // Data dari /menu perlu di-format agar sesuai dgn interface Product
       const formattedData: Product[] = productResponse.map((p: any) => ({
         _id: p._id,
-        name: p.nama, // 'nama' dari backend
-        price: parseFloat(p.harga) || 0, // 'harga' (string) diubah jadi number
+        name: p.nama, 
+        price: parseFloat(p.harga) || 0,
         stock: p.stock || 0,
         category: p.category || 'Makanan',
-        gambar: p.gambar // 'gambar' dari backend (URL Cloudinary)
+        gambar: p.gambar
       }));
-
-      setProducts(formattedData); // 3. Gunakan data yang sudah diformat
-
-
+      setProducts(formattedData);
       const uniqueCategories = ['Semua', ...new Set(formattedData.map(p => p.category))];
       setCategories(uniqueCategories);
     } catch (error) {
@@ -102,13 +101,11 @@ export default function KasirPage() {
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item._id === product._id);
-    
     const productInStock = products.find(p => p._id === product._id);
     if (!productInStock || productInStock.stock === 0) {
       alert('Stok produk habis!');
       return;
     }
-
     if (existingItem) {
       if (existingItem.quantity < productInStock.stock) {
         setCart(cart.map(item => 
@@ -124,7 +121,6 @@ export default function KasirPage() {
 
   const removeFromCart = (productId: string) => {
     const existingItem = cart.find(item => item._id === productId);
-    // Ini baris 114 yang error, _id sudah dihapus:
     if (existingItem) {
       if (existingItem.quantity > 1) {
         setCart(cart.map(item => 
@@ -136,33 +132,30 @@ export default function KasirPage() {
     }
   };
 
+  // <-- 5. FUNGSI BARU UNTUK MENUTUP MODAL SUKSES
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    // Refresh produk setelah modal ditutup
+    fetchProducts();
+  };
 
   const completeTransaction = async (method: string) => {
-    
     const cashierName = localStorage.getItem('loggedInUser') || 'Unknown Cashier';
     const paidAmount = (method === 'QRIS') ? totalPrice : (parseFloat(amountPaid) || 0);
     const changeAmount = (method === 'QRIS') ? 0 : change;
 
     const transactionData = {
-      // 1. Sesuaikan format 'items' dengan OrderItemSchema
-      items: cart.map(item => ({
-        productId: item._id, 
-        nama: item.name,      // 'name' diubah menjadi 'nama'
-        harga: item.price,    // 'price' diubah menjadi 'harga'
-        quantity: item.quantity
-        // 'subtotal' dihapus karena tidak ada di schema
-      })),
-      
-      // 2. Sesuaikan nama field top-level dengan orderController
-      totalPrice: totalPrice,       // 'total' diubah menjadi 'totalPrice'
-      paymentAmount: paidAmount,  // 'payment' diubah menjadi 'paymentAmount'
-      changeAmount: changeAmount,   // 'change' diubah menjadi 'changeAmount'
-      
-      // 3. Tambahkan paymentMethod (diminta oleh backend)
-      paymentMethod: method
-      
-      // 'cashier' dihapus karena tidak ada di schema
-    };
+      items: cart.map(item => ({
+        productId: item._id, 
+        nama: item.name,
+        harga: item.price,
+        quantity: item.quantity
+      })),
+      totalPrice: totalPrice,
+      paymentAmount: paidAmount,
+      changeAmount: changeAmount,
+      paymentMethod: method
+    };
 
     try {
         const res = await fetch(`${API_URL}/api/transactions`, { 
@@ -176,15 +169,25 @@ export default function KasirPage() {
         throw new Error(errorData.message || 'Gagal menyimpan transaksi'); 
       }
 
-      alert(`Pembayaran ${method} berhasil!`);
+      // <-- 6. INI PERUBAHAN UTAMANYA
+      // HAPUS: alert(`Pembayaran ${method} berhasil!`);
+      
+      // GANTI DENGAN INI:
+      setSuccessData({
+        method: method,
+        total: totalPrice,
+        change: changeAmount
+      });
+      setShowSuccessModal(true); // Buka modal sukses
+      // --- AKHIR PERUBAHAN ---
+
       setCart([]);
       setAmountPaid('');
       setPaymentMethod('Cash');
       
-      if (qrisModal) qrisModal.hide();
+      setShowQrisModal(false); // Tutup modal QRIS
       
-      fetchProducts();
-
+      // fetchProducts(); // Kita pindahkan ini ke handleCloseSuccessModal
     } catch (error: any) {
       console.error(error);
       alert(`Terjadi kesalahan: ${error.message}`);
@@ -209,7 +212,9 @@ export default function KasirPage() {
       const qrData = `SIMULASI_BAYAR_KE_KANTIN_SEBESAR_${totalPrice}`;
       setQrisImage(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`);
       setQrisTotal(totalPrice);
-      if (qrisModal) qrisModal.show();
+      
+      // <-- 7. UBAH CARA BUKA MODAL QRIS
+      setShowQrisModal(true);
     }
   };
 
@@ -223,6 +228,7 @@ export default function KasirPage() {
   return (
     <div className="pos-container cashier-container" style={{ padding: '2rem' }}>
       
+      {/* Kolom Kiri - Product Pane */}
       <div className="product-pane">
         <header className="content-header" style={{ marginBottom: '1rem', padding: 0 }}>
           <h1>Pilih Menu</h1>
@@ -258,7 +264,6 @@ export default function KasirPage() {
               <div key={product._id} className="col-lg-4 col-md-6 col-sm-6 col-6 mb-4" onClick={() => addToCart(product)}>
                 <div className="card h-100 product-item shadow-sm border-0">
                   <img 
-                    // GANTI BARIS INI:
                     src={product.gambar || 'https://via.placeholder.com/150'} 
                     className="card-img-top"
                     alt={product.name} 
@@ -276,7 +281,7 @@ export default function KasirPage() {
         </div>
       </div>
       
-      {/* Kolom Keranjang (Kanan) */}
+      {/* Kolom Kanan - Cart Pane */}
       <aside className="cart-pane" style={{ height: 'calc(100vh - 4rem)' }}>
         <h3 className="fw-bold mb-3">Detail Pesanan</h3>
         
@@ -372,44 +377,80 @@ export default function KasirPage() {
         </div>
       </aside>
 
-      {/* Modal QRIS */}
-      <div className="modal fade" id="qrisModal" tabIndex={-1}>
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Pembayaran QRIS</h5>
-              <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
+      {/* <-- 8. MODAL QRIS MENGGUNAKAN REACT BOOTSTRAP --> */}
+      <Modal show={showQrisModal} onHide={() => setShowQrisModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Pembayaran QRIS</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <p>Silakan scan QR code di bawah ini untuk membayar:</p>
+          <h3 className="fw-bold text-primary">{formatCurrency(qrisTotal)}</h3>
+          
+          {qrisImage && (
+            <img 
+              src={qrisImage} 
+              id="qris-image" 
+              className="img-fluid my-3" 
+              alt="QRIS Code" 
+              style={{ width: '250px', height: '250px' }} 
+            />
+          )}
+          
+          <p className="text-muted small">Ini adalah simulasi. QR code ini tidak terhubung dengan pembayaran nyata.</p>
+        </Modal.Body>
+        <Modal.Footer className="d-grid">
+          <Button 
+            variant="success"
+            id="btn-confirm-qris"
+            onClick={() => completeTransaction('QRIS')}
+          >
+            <i className="bi bi-check-circle-fill"></i> Konfirmasi Pembayaran (Simulasi)
+          </Button>
+          <Button variant="secondary" onClick={() => setShowQrisModal(false)} className="mt-2">
+            Batal
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* <-- 9. MODAL SUKSES YANG BARU --> */}
+      <Modal show={showSuccessModal} onHide={handleCloseSuccessModal} centered>
+        <Modal.Body className="text-center p-4">
+          <i 
+            className="bi bi-check-circle-fill text-success" 
+            style={{ fontSize: '4rem', marginBottom: '1rem' }}
+          ></i>
+          <h3 className="fw-bold">Pembayaran Berhasil!</h3>
+          <p className="text-muted">Pembayaran Anda telah berhasil diproses.</p>
+          
+          <hr className="my-3" />
+          
+          <div className="text-start" style={{ fontSize: '0.9rem' }}>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Metode Bayar:</span>
+              <span className="fw-bold">{successData.method}</span>
             </div>
-            <div className="modal-body text-center">
-              <p>Silakan scan QR code di bawah ini untuk membayar:</p>
-              <h3 className="fw-bold text-primary">{formatCurrency(qrisTotal)}</h3>
-              
-              {qrisImage && (
-                <img 
-                  src={qrisImage} 
-                  id="qris-image" 
-                  className="img-fluid my-3" 
-                  alt="QRIS Code" 
-                  style={{ width: '250px', height: '250px' }} 
-                />
-              )}
-              
-              <p className="text-muted small">Ini adalah simulasi. QR code ini tidak terhubung dengan pembayaran nyata.</p>
+            <div className="d-flex justify-content-between mb-2">
+              <span className="text-muted">Total Bayar:</span>
+              <span className="fw-bold">{formatCurrency(successData.total)}</span>
             </div>
-            <div className="modal-footer d-grid">
-              <button 
-                type="button" 
-                className="btn btn-success" 
-                id="btn-confirm-qris"
-                onClick={() => completeTransaction('QRIS')}
-              >
-                <i className="bi bi-check-circle-fill"></i> Konfirmasi Pembayaran (Simulasi)
-              </button>
-              <button type="button" className="btn btn-secondary mt-2" data-bs-dismiss="modal">Batal</button>
-            </div>
+            {/* Hanya tampilkan kembalian jika metodenya 'Cash' */}
+            {successData.method === 'Cash' && (
+              <div className="d-flex justify-content-between">
+                <span className="text-muted">Kembalian:</span>
+                <span className="fw-bold">{formatCurrency(successData.change)}</span>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
+
+          <Button 
+            variant="primary" 
+            onClick={handleCloseSuccessModal} 
+            className="w-100 mt-4 fw-bold"
+          >
+            Tutup
+          </Button>
+        </Modal.Body>
+      </Modal>
 
     </div>
   );
