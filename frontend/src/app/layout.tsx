@@ -1,3 +1,5 @@
+// frontend/src/app/layout.tsx
+
 "use client";
 
 import "./globals.css";
@@ -5,18 +7,17 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-// 1. IMPORT AuthProvider dan useAuth DARI CONTEXT ANDA
-import { AuthProvider, useAuth } from "@/Context/AuthContext"; // (Sesuaikan path jika perlu)
+// Import AuthProvider dan useAuth
+import { AuthProvider, useAuth } from "@/Context/AuthContext";
+
+// === IMPORT NETWORK STATUS HANDLER ===
+import { NetworkStatusHandler } from "@/components/NetworkStatusHandler";
 
 const Sidebar = () => {
   const pathname = usePathname();
-  
-  // --- PERUBAHAN DI SINI ---
-  // 2. Ambil 'user' (selain logout) dari context
   const { user, logout } = useAuth(); 
-  // --- AKHIR PERUBAHAN ---
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,8 +52,6 @@ const Sidebar = () => {
             </Link>
           </li>
           
-          {/* --- PERUBAHAN DI SINI --- */}
-          {/* 3. Tampilkan link ini HANYA JIKA user ada DAN rolenya 'admin' */}
           {user && user.role === 'admin' && (
             <li className="nav-item">
               <Link 
@@ -63,8 +62,6 @@ const Sidebar = () => {
               </Link>
             </li>
           )}
-          {/* --- AKHIR PERUBAHAN --- */}
-          
         </ul>
       </div>
       <a className="nav-link logout-link mt-auto mb-3" href="#" onClick={handleLogout}>
@@ -74,12 +71,9 @@ const Sidebar = () => {
   );
 };
 
-// ==========================================================
-// 'ContentHeader' Anda sudah benar, tidak perlu diubah.
-// ==========================================================
 const ContentHeader = ({ title }: { title: string }) => {
   const { user, logout } = useAuth(); 
-  const userEmail = user ? `${user.email} (${user.role})` : "Loading..."; // <-- Bonus: tampilkan role
+  const userEmail = user ? `${user.email} (${user.role})` : "Loading...";
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -104,10 +98,6 @@ const ContentHeader = ({ title }: { title: string }) => {
   );
 };
 
-
-// ==========================================================
-// 'RootLayout' Anda sudah benar, tidak perlu diubah.
-// ==========================================================
 export default function RootLayout({
   children,
 }: {
@@ -125,8 +115,17 @@ export default function RootLayout({
 
   return (
     <html lang="id">
+      {/* === TAG HEAD UNTUK PWA === */}
+      <head>
+        <meta name="theme-color" content="#4A90E2" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
+
       <body>
         <AuthProvider>
+          {/* === NETWORK STATUS HANDLER UNTUK AUTO-SYNC === */}
+          <NetworkStatusHandler />
+
           {showLayout ? (
             <>
               <Sidebar />

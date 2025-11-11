@@ -1,12 +1,20 @@
+// frontend/src/app/kasir/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
-// <-- 1. IMPORT Modal & Button dari React Bootstrap
 import { Modal, Button } from 'react-bootstrap';
+
+// === IMPORT LOGIKA OFFLINE ===
+import { 
+  saveMenusToCache, 
+  getMenusFromCache, 
+  saveTransactionToQueue,
+  type OfflineTransactionPayload
+} from '@/lib/offlineStorage';
 
 const API_URL = "http://localhost:5000";
 
-// Interface Anda
 interface Product {
   _id: string;
   name: string;
@@ -18,14 +26,7 @@ interface Product {
 interface CartItem extends Product {
   quantity: number;
 }
-interface TransactionItem {
-    productId: string;
-    name: string;
-    quantity: number;
-    price: number;
-}
 
-// Fungsi formatCurrency
 const formatCurrency = (number: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -47,12 +48,10 @@ export default function KasirPage() {
   const [amountPaid, setAmountPaid] = useState('');
   const [change, setChange] = useState(0);
 
-  // <-- 2. State untuk modal QRIS
   const [showQrisModal, setShowQrisModal] = useState(false);
   const [qrisImage, setQrisImage] = useState<string | null>(null);
   const [qrisTotal, setQrisTotal] = useState(0);
   
-  // <-- 3. State baru untuk modal sukses
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState({ 
     method: '', 
@@ -60,32 +59,91 @@ export default function KasirPage() {
     change: 0 
   });
 
-  // <-- 4. useEffect untuk 'require' bootstrap sudah dihapus
-  // Kita tidak memerlukannya lagi
+  // === STATE OFFLINE ===
+  const [isOffline, setIsOffline] = useState(false);
 
+  // === FUNGSI FETCH PRODUCTS (WITH OFFLINE FALLBACK) ===
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_URL}/menu`); 
-      const productResponse = await res.json();
-      const formattedData: Product[] = productResponse.map((p: any) => ({
-        _id: p._id,
-        name: p.nama, 
-        price: parseFloat(p.harga) || 0,
-        stock: p.stock || 0,
-        category: p.category || 'Makanan',
-        gambar: p.gambar
-      }));
-      setProducts(formattedData);
-      const uniqueCategories = ['Semua', ...new Set(formattedData.map(p => p.category))];
-      setCategories(uniqueCategories);
+      if (typeof window !== 'undefined' && navigator.onLine) {
+        // --- ONLINE MODE ---
+        console.log("🌐 ONLINE: Mengambil produk dari server...");
+        const res = await fetch(`${API_URL}/menu`); 
+        if (!res.ok) throw new Error('Gagal fetch dari server');
+        const productResponse = await res.json();
+        const formattedData: Product[] = productResponse.map((p: any) => ({
+          _id: p._id,
+          name: p.nama, 
+          price: parseFloat(p.harga) || 0,
+          stock: p.stock || 0,
+          category: p.category || 'Makanan',
+          gambar: p.gambar
+        }));
+
+        setProducts(formattedData);
+        saveMenusToCache(formattedData); // Cache untuk offline
+
+        const uniqueCategories = ['Semua', ...new Set(formattedData.map(p => p.category))];
+        setCategories(uniqueCategories);
+        setIsOffline(false);
+
+      } else {
+        // --- OFFLINE MODE ---
+        console.log("📵 OFFLINE: Mengambil produk dari cache...");
+        setIsOffline(true);
+        const cachedMenus = getMenusFromCache();
+        if (cachedMenus && cachedMenus.length > 0) {
+          setProducts(cachedMenus);
+          const uniqueCategories = ['Semua', ...new Set(cachedMenus.map(p => p.category))];
+          setCategories(uniqueCategories);
+        } else {
+          console.warn("⚠️ OFFLINE: Cache menu kosong.");
+          alert('Anda sedang offline dan data menu belum tersimpan. Harap online setidaknya sekali untuk mengambil data menu.');
+        }
+      }
     } catch (error) {
-      console.error("Gagal mengambil produk:", error);
+      // --- FALLBACK JIKA FETCH GAGAL ---
+      console.error("❌ Gagal mengambil produk, mencoba fallback ke cache:", error);
+      setIsOffline(true);
+      const cachedMenus = getMenusFromCache();
+      if (cachedMenus && cachedMenus.length > 0) {
+        console.log("💾 FALLBACK: Mengambil produk dari cache...");
+        setProducts(cachedMenus);
+        const uniqueCategories = ['Semua', ...new Set(cachedMenus.map(p => p.category))];
+        setCategories(uniqueCategories);
+      } else {
+        console.error("❌ FALLBACK: Cache menu kosong.");
+        alert('Gagal mengambil data menu. Silakan cek koneksi internet Anda.');
+      }
     }
   };
 
+  // === EFFECT: LOAD PRODUCTS & LISTEN TO NETWORK ===
   useEffect(() => {
     fetchProducts();
-  }, []);
+
+    const handleOnline = () => {
+      console.log('🌐 KasirPage: Kembali Online');
+      setIsOffline(false);
+      fetchProducts(); 
+    }
+    const handleOffline = () => {
+      console.log('📵 KasirPage: Koneksi Terputus');
+      setIsOffline(true);
+    }
+
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      setIsOffline(true);
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []); 
 
   useEffect(() => {
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -132,13 +190,19 @@ export default function KasirPage() {
     }
   };
 
-  // <-- 5. FUNGSI BARU UNTUK MENUTUP MODAL SUKSES
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    // Refresh produk setelah modal ditutup
     fetchProducts();
   };
 
+  const resetCartAndState = () => {
+    setCart([]);
+    setAmountPaid('');
+    setPaymentMethod('Cash');
+    setShowQrisModal(false); 
+  };
+
+  // === FUNGSI COMPLETE TRANSACTION (WITH OFFLINE SUPPORT) ===
   const completeTransaction = async (method: string) => {
     const cashierName = localStorage.getItem('loggedInUser') || 'Unknown Cashier';
     const paidAmount = (method === 'QRIS') ? totalPrice : (parseFloat(amountPaid) || 0);
@@ -157,40 +221,56 @@ export default function KasirPage() {
       paymentMethod: method
     };
 
-    try {
+    // === CEK: ONLINE ATAU OFFLINE? ===
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      // --- ONLINE MODE: KIRIM KE SERVER ---
+      console.log("🌐 ONLINE: Mengirim transaksi ke server...");
+      try {
         const res = await fetch(`${API_URL}/api/transactions`, { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transactionData),
-      });
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(transactionData),
+        });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Gagal menyimpan transaksi'); 
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'Gagal menyimpan transaksi'); 
+        }
+
+        setSuccessData({
+          method: method,
+          total: totalPrice,
+          change: changeAmount
+        });
+        setShowSuccessModal(true); 
+        
+        resetCartAndState();
+
+      } catch (error: any) {
+        console.error(error);
+        alert(`Terjadi kesalahan: ${error.message}`);
       }
+    } else {
+      // --- OFFLINE MODE: SIMPAN KE QUEUE ---
+      console.log("📵 OFFLINE: Menyimpan transaksi ke antrean...");
 
-      // <-- 6. INI PERUBAHAN UTAMANYA
-      // HAPUS: alert(`Pembayaran ${method} berhasil!`);
-      
-      // GANTI DENGAN INI:
+      const offlinePayload: OfflineTransactionPayload = {
+        ...transactionData,
+        offlineId: `offline-${Date.now()}`,
+        cashierName: cashierName,
+        createdAt: new Date().toISOString()
+      };
+
+      saveTransactionToQueue(offlinePayload);
+
       setSuccessData({
         method: method,
         total: totalPrice,
         change: changeAmount
       });
-      setShowSuccessModal(true); // Buka modal sukses
-      // --- AKHIR PERUBAHAN ---
+      setShowSuccessModal(true); 
 
-      setCart([]);
-      setAmountPaid('');
-      setPaymentMethod('Cash');
-      
-      setShowQrisModal(false); // Tutup modal QRIS
-      
-      // fetchProducts(); // Kita pindahkan ini ke handleCloseSuccessModal
-    } catch (error: any) {
-      console.error(error);
-      alert(`Terjadi kesalahan: ${error.message}`);
+      resetCartAndState();
     }
   };
 
@@ -213,7 +293,6 @@ export default function KasirPage() {
       setQrisImage(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`);
       setQrisTotal(totalPrice);
       
-      // <-- 7. UBAH CARA BUKA MODAL QRIS
       setShowQrisModal(true);
     }
   };
@@ -224,10 +303,27 @@ export default function KasirPage() {
     (p.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-
   return (
     <div className="pos-container cashier-container" style={{ padding: '2rem' }}>
       
+      {/* === INDIKATOR OFFLINE === */}
+      {isOffline && (
+        <div 
+          className="alert alert-warning text-center" 
+          role="alert"
+          style={{ 
+            position: 'fixed', 
+            top: '1rem', 
+            left: 'calc(var(--sidebar-width, 280px) + 2rem)', 
+            right: '2rem',
+            zIndex: 1100,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}
+        >
+          <i className="bi bi-wifi-off"></i> <strong>Mode Offline Aktif.</strong> Transaksi akan disimpan dan disinkronisasi saat kembali online.
+        </div>
+      )}
+
       {/* Kolom Kiri - Product Pane */}
       <div className="product-pane">
         <header className="content-header" style={{ marginBottom: '1rem', padding: 0 }}>
@@ -371,13 +467,14 @@ export default function KasirPage() {
               id="btn-process-payment"
               onClick={handleProcessPayment}
             >
-              <i className="bi bi-check-circle-fill"></i> Proses Pembayaran
+              <i className="bi bi-check-circle-fill"></i> 
+              {isOffline ? ' Simpan Transaksi (Offline)' : ' Proses Pembayaran'}
             </button>
           </div>
         </div>
       </aside>
 
-      {/* <-- 8. MODAL QRIS MENGGUNAKAN REACT BOOTSTRAP --> */}
+      {/* Modal QRIS */}
       <Modal show={showQrisModal} onHide={() => setShowQrisModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Pembayaran QRIS</Modal.Title>
@@ -412,7 +509,7 @@ export default function KasirPage() {
         </Modal.Footer>
       </Modal>
 
-      {/* <-- 9. MODAL SUKSES YANG BARU --> */}
+      {/* Modal Sukses */}
       <Modal show={showSuccessModal} onHide={handleCloseSuccessModal} centered>
         <Modal.Body className="text-center p-4">
           <i 
@@ -433,7 +530,6 @@ export default function KasirPage() {
               <span className="text-muted">Total Bayar:</span>
               <span className="fw-bold">{formatCurrency(successData.total)}</span>
             </div>
-            {/* Hanya tampilkan kembalian jika metodenya 'Cash' */}
             {successData.method === 'Cash' && (
               <div className="d-flex justify-content-between">
                 <span className="text-muted">Kembalian:</span>

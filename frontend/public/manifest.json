@@ -1,23 +1,21 @@
-
 {
-  "name": "Kasir UMKM",
-  "short_name": "Kasir",
-  "description": "Aplikasi Kasir UMKM Offline-Online",
-  "start_url": "/",
+  "name": "Kantin Kasir",
+  "short_name": "KantinKasir",
+  "description": "Aplikasi Kasir untuk Kantin",
+  "start_url": "/login",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#212529",
+  "background_color": "#FFFFFF",
+  "theme_color": "#4A90E2",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "icon-192x192/png"
     },
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "icon-512x512/png"
     }
   ]
 }
-
