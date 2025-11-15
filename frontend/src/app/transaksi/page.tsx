@@ -1,22 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// 1. IMPORT Modal & Button dari React Bootstrap
 import { Modal, Button } from "react-bootstrap";
 
 const API_URL = 'http://localhost:5000/api';
 
-// Interface Transaksi
+// Interface Transaksi (UPDATED: tambah notes di items)
 interface Transaction {
   _id: string;
   createdAt: string;
   totalPrice: number;
-  paymentMethod: string; // <-- Bisa jadi 'null' atau 'undefined' dari DB
+  paymentMethod: string;
   items: {
     productId: string;
     nama: string;
     harga: number;
     quantity: number;
+    notes?: string; // TAMBAHAN: Field notes
   }[];
 }
 
@@ -186,7 +186,6 @@ export default function TransaksiPage() {
                     <td>{formatDate(tx.createdAt)}</td>
                     <td className="fw-bold text-success">{formatCurrency(tx.totalPrice)}</td>
                     <td>
-                      {/* <-- PERBAIKAN DI TABEL --> */}
                       <span className={`badge ${
                         tx.paymentMethod === 'Cash' ? 'bg-success' : 
                         tx.paymentMethod === 'QRIS' ? 'bg-info' : 'bg-secondary'
@@ -197,7 +196,7 @@ export default function TransaksiPage() {
                     <td>
                       <div className="d-flex flex-column gap-2" style={{ minWidth: '300px' }}>
                         {tx.items.map((item, idx) => (
-                          <div key={idx} className="d-flex align-items-center gap-2">
+                          <div key={idx} className="d-flex align-items-start gap-2">
                             <img 
                               src={getProductImage(item.productId, item.nama)} 
                               alt={item.nama}
@@ -212,10 +211,18 @@ export default function TransaksiPage() {
                                 e.currentTarget.src = 'https://via.placeholder.com/40';
                               }}
                             />
-                            <span className="flex-grow-1">
-                              {item.nama} 
-                              <small className="text-muted"> (x{item.quantity})</small>
-                            </span>
+                            <div className="flex-grow-1">
+                              <span className="d-block">
+                                {item.nama} 
+                                <small className="text-muted"> (x{item.quantity})</small>
+                              </span>
+                              {/* TAMPILKAN NOTES DI TABEL */}
+                              {item.notes && (
+                                <small className="text-info d-block mt-1">
+                                  <i className="bi bi-sticky"></i> {item.notes}
+                                </small>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -254,7 +261,6 @@ export default function TransaksiPage() {
                 </div>
                 <div className="col-md-6 mb-3">
                   <span className="text-muted d-block">Metode Bayar:</span>
-                  {/* <-- PERBAIKAN DI MODAL (INI YANG ANDA LAPORKAN) --> */}
                   <span className={`badge fs-6 ${
                     selectedTx.paymentMethod === 'Cash' ? 'bg-success' : 
                     selectedTx.paymentMethod === 'QRIS' ? 'bg-info' : 'bg-secondary'
@@ -274,22 +280,63 @@ export default function TransaksiPage() {
               
               <ul className="list-group list-group-flush">
                 {selectedTx.items.map((item, idx) => (
-                  <li key={idx} className="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
-                    <div className="d-flex align-items-center">
+                  <li key={idx} className="list-group-item d-flex justify-content-between align-items-start px-0 py-3">
+                    <div className="d-flex align-items-start flex-grow-1">
                       <img 
                         src={getProductImage(item.productId, item.nama)} 
                         alt={item.nama}
-                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px', marginRight: '15px' }}
+                        style={{ 
+                          width: '60px', 
+                          height: '60px', 
+                          objectFit: 'cover', 
+                          borderRadius: '8px', 
+                          marginRight: '15px',
+                          flexShrink: 0
+                        }}
                       />
-                      <div>
-                        <span className="fw-bold d-block">{item.nama}</span>
-                        <small className="text-muted">{formatCurrency(item.harga)} x {item.quantity}</small>
+                      <div className="flex-grow-1">
+                        <span className="fw-bold d-block mb-1">{item.nama}</span>
+                        <small className="text-muted d-block mb-2">
+                          {formatCurrency(item.harga)} x {item.quantity}
+                        </small>
+                        
+                        {/* TAMPILKAN NOTES DI MODAL DETAIL */}
+                        {item.notes && (
+                          <div 
+                            className="alert alert-info py-2 px-3 mb-0 d-inline-block" 
+                            style={{ fontSize: '0.85rem', borderRadius: '6px' }}
+                          >
+                            <i className="bi bi-sticky-fill me-1"></i>
+                            <strong>Catatan:</strong> {item.notes}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <strong className="text-dark fs-6">{formatCurrency(item.harga * item.quantity)}</strong>
+                    <strong className="text-dark fs-6 ms-3" style={{ flexShrink: 0 }}>
+                      {formatCurrency(item.harga * item.quantity)}
+                    </strong>
                   </li>
                 ))}
               </ul>
+
+              {/* Bagian 3: Ringkasan dengan Notes Count */}
+              <div className="mt-4 p-3 bg-light rounded">
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Total Item:</span>
+                  <span className="fw-bold">{selectedTx.items.length} item</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="text-muted">Item dengan Catatan:</span>
+                  <span className="fw-bold text-info">
+                    {selectedTx.items.filter(item => item.notes && item.notes.trim()).length} item
+                  </span>
+                </div>
+                <hr />
+                <div className="d-flex justify-content-between">
+                  <span className="fw-bold">Total Pembayaran:</span>
+                  <span className="fw-bold text-success fs-5">{formatCurrency(selectedTx.totalPrice)}</span>
+                </div>
+              </div>
             </div>
           )}
         </Modal.Body>

@@ -23,8 +23,10 @@ interface Product {
   category: string;
   gambar: string;
 }
+
 interface CartItem extends Product {
   quantity: number;
+  notes?: string; // TAMBAHAN: Field untuk catatan
 }
 
 const formatCurrency = (number: number) => {
@@ -62,11 +64,15 @@ export default function KasirPage() {
   // === STATE OFFLINE ===
   const [isOffline, setIsOffline] = useState(false);
 
+  // === STATE UNTUK NOTES MODAL ===
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [currentNotesItemId, setCurrentNotesItemId] = useState<string>('');
+  const [tempNotes, setTempNotes] = useState('');
+
   // === FUNGSI FETCH PRODUCTS (WITH OFFLINE FALLBACK) ===
   const fetchProducts = async () => {
     try {
       if (typeof window !== 'undefined' && navigator.onLine) {
-        // --- ONLINE MODE ---
         console.log("🌐 ONLINE: Mengambil produk dari server...");
         const res = await fetch(`${API_URL}/menu`); 
         if (!res.ok) throw new Error('Gagal fetch dari server');
@@ -81,14 +87,13 @@ export default function KasirPage() {
         }));
 
         setProducts(formattedData);
-        saveMenusToCache(formattedData); // Cache untuk offline
+        saveMenusToCache(formattedData);
 
         const uniqueCategories = ['Semua', ...new Set(formattedData.map(p => p.category))];
         setCategories(uniqueCategories);
         setIsOffline(false);
 
       } else {
-        // --- OFFLINE MODE ---
         console.log("📵 OFFLINE: Mengambil produk dari cache...");
         setIsOffline(true);
         const cachedMenus = getMenusFromCache();
@@ -102,7 +107,6 @@ export default function KasirPage() {
         }
       }
     } catch (error) {
-      // --- FALLBACK JIKA FETCH GAGAL ---
       console.error("❌ Gagal mengambil produk, mencoba fallback ke cache:", error);
       setIsOffline(true);
       const cachedMenus = getMenusFromCache();
@@ -118,7 +122,6 @@ export default function KasirPage() {
     }
   };
 
-  // === EFFECT: LOAD PRODUCTS & LISTEN TO NETWORK ===
   useEffect(() => {
     fetchProducts();
 
@@ -157,6 +160,7 @@ export default function KasirPage() {
     setChange(newChange);
   };
 
+  // === FUNGSI TAMBAH KE CART (DIMODIFIKASI) ===
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item._id === product._id);
     const productInStock = products.find(p => p._id === product._id);
@@ -173,10 +177,11 @@ export default function KasirPage() {
         alert('Stok produk tidak mencukupi!');
       }
     } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
+      setCart([...cart, { ...product, quantity: 1, notes: '' }]);
     }
   };
 
+  // === FUNGSI KURANGI DARI CART ===
   const removeFromCart = (productId: string) => {
     const existingItem = cart.find(item => item._id === productId);
     if (existingItem) {
@@ -188,6 +193,34 @@ export default function KasirPage() {
         setCart(cart.filter(item => item._id !== productId));
       }
     }
+  };
+
+  // === FUNGSI HAPUS ITEM DARI CART ===
+  const deleteFromCart = (productId: string) => {
+    setCart(cart.filter(item => item._id !== productId));
+  };
+
+  // === FUNGSI BUKA MODAL NOTES ===
+  const openNotesModal = (itemId: string) => {
+    const item = cart.find(i => i._id === itemId);
+    setCurrentNotesItemId(itemId);
+    setTempNotes(item?.notes || '');
+    setShowNotesModal(true);
+  };
+
+  // === FUNGSI SIMPAN NOTES ===
+  const saveNotes = () => {
+    setCart(cart.map(item => 
+      item._id === currentNotesItemId ? { ...item, notes: tempNotes } : item
+    ));
+    setShowNotesModal(false);
+    setTempNotes('');
+  };
+
+  // === FUNGSI GET QUANTITY IN CART ===
+  const getCartQuantity = (productId: string): number => {
+    const item = cart.find(i => i._id === productId);
+    return item ? item.quantity : 0;
   };
 
   const handleCloseSuccessModal = () => {
@@ -213,7 +246,8 @@ export default function KasirPage() {
         productId: item._id, 
         nama: item.name,
         harga: item.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        notes: item.notes || '' // TAMBAHAN: Kirim notes
       })),
       totalPrice: totalPrice,
       paymentAmount: paidAmount,
@@ -221,9 +255,8 @@ export default function KasirPage() {
       paymentMethod: method
     };
 
-    // === CEK: ONLINE ATAU OFFLINE? ===
+
     if (typeof window !== 'undefined' && navigator.onLine) {
-      // --- ONLINE MODE: KIRIM KE SERVER ---
       console.log("🌐 ONLINE: Mengirim transaksi ke server...");
       try {
         const res = await fetch(`${API_URL}/api/transactions`, { 
@@ -251,7 +284,6 @@ export default function KasirPage() {
         alert(`Terjadi kesalahan: ${error.message}`);
       }
     } else {
-      // --- OFFLINE MODE: SIMPAN KE QUEUE ---
       console.log("📵 OFFLINE: Menyimpan transaksi ke antrean...");
 
       const offlinePayload: OfflineTransactionPayload = {
@@ -356,23 +388,67 @@ export default function KasirPage() {
           {filteredProducts.length === 0 ? (
             <p className="text-center text-muted col-12">Produk tidak ditemukan.</p>
           ) : (
-            filteredProducts.map(product => (
-              <div key={product._id} className="col-lg-4 col-md-6 col-sm-6 col-6 mb-4" onClick={() => addToCart(product)}>
-                <div className="card h-100 product-item shadow-sm border-0">
-                  <img 
-                    src={product.gambar || 'https://via.placeholder.com/150'} 
-                    className="card-img-top"
-                    alt={product.name} 
-                    style={{ height: '150px', objectFit: 'cover' }}
-                  />
-                  <div className="card-body d-flex flex-column p-3">
-                    <h5 className="card-title fs-6 fw-bold mb-1">{product.name}</h5>
-                    <p className="card-text fw-bold text-primary mb-2">{formatCurrency(product.price)}</p>
-                    <small className="text-muted mt-auto">Stok: {product.stock}</small>
+            filteredProducts.map(product => {
+              const qtyInCart = getCartQuantity(product._id);
+              return (
+                <div key={product._id} className="col-lg-4 col-md-6 col-sm-6 col-6 mb-4">
+                  <div className="card h-100 product-item shadow-sm border-0" style={{ position: 'relative' }}>
+                    <img 
+                      src={product.gambar || 'https://via.placeholder.com/150'} 
+                      className="card-img-top"
+                      alt={product.name} 
+                      style={{ height: '150px', objectFit: 'cover', cursor: 'pointer' }}
+                      onClick={() => addToCart(product)}
+                    />
+                    
+                    {/* Badge Quantity */}
+                    {qtyInCart > 0 && (
+                      <span 
+                        className="badge bg-primary position-absolute" 
+                        style={{ top: '10px', right: '10px', fontSize: '1rem', padding: '0.5rem 0.75rem' }}
+                      >
+                        {qtyInCart}
+                      </span>
+                    )}
+
+                    <div className="card-body d-flex flex-column p-3">
+                      <h5 className="card-title fs-6 fw-bold mb-1">{product.name}</h5>
+                      <p className="card-text fw-bold text-primary mb-2">{formatCurrency(product.price)}</p>
+                      <small className="text-muted mb-2">Stok: {product.stock}</small>
+                      
+                      {/* Tombol Tambah/Kurangi */}
+                      {qtyInCart === 0 ? (
+                        <button 
+                          className="btn btn-primary btn-sm w-100 mt-auto"
+                          onClick={() => addToCart(product)}
+                        >
+                          <i className="bi bi-plus-circle"></i> Tambah
+                        </button>
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-between mt-auto">
+                          <button 
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => removeFromCart(product._id)}
+                            style={{ width: '35px', height: '35px' }}
+                          >
+                            <i className="bi bi-dash"></i>
+                          </button>
+                          <span className="fw-bold fs-5">{qtyInCart}</span>
+                          <button 
+                            className="btn btn-outline-primary btn-sm"
+                            onClick={() => addToCart(product)}
+                            style={{ width: '35px', height: '35px' }}
+                            disabled={qtyInCart >= product.stock}
+                          >
+                            <i className="bi bi-plus"></i>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -381,24 +457,43 @@ export default function KasirPage() {
       <aside className="cart-pane" style={{ height: 'calc(100vh - 4rem)' }}>
         <h3 className="fw-bold mb-3">Detail Pesanan</h3>
         
-        <ul className="list-group list-group-flush" id="cart-items">
+        <ul className="list-group list-group-flush" id="cart-items" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
           {cart.length === 0 ? (
             <li className="list-group-item text-center text-muted">Keranjang kosong</li>
           ) : (
             cart.map(item => (
-              <li key={item._id} className="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <span className="fw-bold d-block">{item.name}</span>
-                  <small className="text-muted">{formatCurrency(item.price)} x {item.quantity}</small>
-                </div>
-                <div>
-                  <strong className="me-3">{formatCurrency(item.price * item.quantity)}</strong>
-                  <button 
-                    className="btn btn-outline-danger btn-sm p-1 border-0" 
-                    onClick={() => removeFromCart(item._id)}
-                  >
-                    <i className="bi bi-trash-fill"></i>
-                  </button>
+              <li key={item._id} className="list-group-item">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div style={{ flex: 1 }}>
+                    <span className="fw-bold d-block">{item.name}</span>
+                    <small className="text-muted">{formatCurrency(item.price)} x {item.quantity}</small>
+                    {item.notes && (
+                      <div className="mt-1">
+                        <small className="text-info">
+                          <i className="bi bi-sticky"></i> {item.notes}
+                        </small>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-end">
+                    <strong className="d-block mb-1">{formatCurrency(item.price * item.quantity)}</strong>
+                    <div>
+                      <button 
+                        className="btn btn-outline-info btn-sm p-1 border-0 me-1" 
+                        onClick={() => openNotesModal(item._id)}
+                        title="Tambah Catatan"
+                      >
+                        <i className="bi bi-sticky"></i>
+                      </button>
+                      <button 
+                        className="btn btn-outline-danger btn-sm p-1 border-0" 
+                        onClick={() => deleteFromCart(item._id)}
+                        title="Hapus Item"
+                      >
+                        <i className="bi bi-trash-fill"></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </li>
             ))
@@ -546,6 +641,34 @@ export default function KasirPage() {
             Tutup
           </Button>
         </Modal.Body>
+      </Modal>
+
+      {/* Modal Notes */}
+      <Modal show={showNotesModal} onHide={() => setShowNotesModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Tambah Catatan</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="form-group">
+            <label className="form-label">Catatan Pesanan:</label>
+            <textarea 
+              className="form-control" 
+              rows={3}
+              placeholder="Contoh: Tidak pakai cabe, ekstra kerupuk, dll."
+              value={tempNotes}
+              onChange={(e) => setTempNotes(e.target.value)}
+            />
+            <small className="text-muted">Catatan ini akan dikirim ke dapur/kasir.</small>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowNotesModal(false)}>
+            Batal
+          </Button>
+          <Button variant="primary" onClick={saveNotes}>
+            <i className="bi bi-check-circle"></i> Simpan Catatan
+          </Button>
+        </Modal.Footer>
       </Modal>
 
     </div>
