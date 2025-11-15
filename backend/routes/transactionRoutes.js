@@ -5,10 +5,10 @@ const router = express.Router();
 
 // 1. Biarkan import ini untuk fungsi GET, DELETE, dll.
 const {
-  getAllTransactions,
-  getTransactionById,
-  getDailyReport,  
-  deleteTransactionById,
+    getAllTransactions,
+    getTransactionById,
+    getDailyReport, 
+    deleteTransactionById,
 } = require('../controllers/transactionController.js');
 
 // 2. TAMBAHKAN import ini untuk fungsi create (POST)
