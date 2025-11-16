@@ -26,7 +26,7 @@ interface Product {
 
 interface CartItem extends Product {
   quantity: number;
-  notes?: string; // TAMBAHAN: Field untuk catatan
+  notes?: string; // Kita biarkan di UI untuk user experience, tapi tidak dikirim ke DB
 }
 
 const formatCurrency = (number: number) => {
@@ -77,6 +77,8 @@ export default function KasirPage() {
         const res = await fetch(`${API_URL}/menu`); 
         if (!res.ok) throw new Error('Gagal fetch dari server');
         const productResponse = await res.json();
+        
+        // Mapping data dari backend (nama -> name, harga -> price)
         const formattedData: Product[] = productResponse.map((p: any) => ({
           _id: p._id,
           name: p.nama, 
@@ -160,7 +162,7 @@ export default function KasirPage() {
     setChange(newChange);
   };
 
-  // === FUNGSI TAMBAH KE CART (DIMODIFIKASI) ===
+  // === FUNGSI TAMBAH KE CART ===
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item._id === product._id);
     const productInStock = products.find(p => p._id === product._id);
@@ -208,7 +210,7 @@ export default function KasirPage() {
     setShowNotesModal(true);
   };
 
-  // === FUNGSI SIMPAN NOTES ===
+  // === FUNGSI SIMPAN NOTES (Hanya di UI Frontend) ===
   const saveNotes = () => {
     setCart(cart.map(item => 
       item._id === currentNotesItemId ? { ...item, notes: tempNotes } : item
@@ -225,7 +227,7 @@ export default function KasirPage() {
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    fetchProducts();
+    fetchProducts(); // Refresh stok
   };
 
   const resetCartAndState = () => {
@@ -235,19 +237,21 @@ export default function KasirPage() {
     setShowQrisModal(false); 
   };
 
-  // === FUNGSI COMPLETE TRANSACTION (WITH OFFLINE SUPPORT) ===
+  // === FUNGSI COMPLETE TRANSACTION (FIXED FOR BACKEND) ===
   const completeTransaction = async (method: string) => {
     const cashierName = localStorage.getItem('loggedInUser') || 'Unknown Cashier';
     const paidAmount = (method === 'QRIS') ? totalPrice : (parseFloat(amountPaid) || 0);
     const changeAmount = (method === 'QRIS') ? 0 : change;
 
+    // PERBAIKAN PENTING: Mapping data sesuai Schema Backend
     const transactionData = {
       items: cart.map(item => ({
-        productId: item._id, 
-        nama: item.name,
-        harga: item.price,
+        productId: item._id,
+        nama: item.name,      // Backend pakai 'nama'
+        harga: item.price,    // Backend pakai 'harga'
         quantity: item.quantity,
-        notes: item.notes || '' // TAMBAHAN: Kirim notes
+        fotoUrl: item.gambar || '' // Backend pakai 'fotoUrl', bukan 'gambar'
+        // Field 'notes' TIDAK dikirim agar tidak error di backend lama
       })),
       totalPrice: totalPrice,
       paymentAmount: paidAmount,
@@ -255,10 +259,10 @@ export default function KasirPage() {
       paymentMethod: method
     };
 
-
     if (typeof window !== 'undefined' && navigator.onLine) {
       console.log("🌐 ONLINE: Mengirim transaksi ke server...");
       try {
+        // POST ke endpoint yang benar (sesuai route backend Anda)
         const res = await fetch(`${API_URL}/api/transactions`, { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -401,7 +405,6 @@ export default function KasirPage() {
                       onClick={() => addToCart(product)}
                     />
                     
-                    {/* Badge Quantity */}
                     {qtyInCart > 0 && (
                       <span 
                         className="badge bg-primary position-absolute" 
@@ -416,7 +419,6 @@ export default function KasirPage() {
                       <p className="card-text fw-bold text-primary mb-2">{formatCurrency(product.price)}</p>
                       <small className="text-muted mb-2">Stok: {product.stock}</small>
                       
-                      {/* Tombol Tambah/Kurangi */}
                       {qtyInCart === 0 ? (
                         <button 
                           className="btn btn-primary btn-sm w-100 mt-auto"
@@ -658,7 +660,7 @@ export default function KasirPage() {
               value={tempNotes}
               onChange={(e) => setTempNotes(e.target.value)}
             />
-            <small className="text-muted">Catatan ini akan dikirim ke dapur/kasir.</small>
+            <small className="text-muted">Catatan ini akan tampil di layar kasir (tidak disimpan ke database).</small>
           </div>
         </Modal.Body>
         <Modal.Footer>

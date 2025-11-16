@@ -1,3 +1,5 @@
+// frontend/src/lib/offlineStorage.ts
+
 'use client';
 
 // ======================
@@ -15,15 +17,16 @@ interface Product {
 }
 
 // Tipe data transaksi yang akan kita simpan
+// Disesuaikan dengan Schema Backend Order.js
 export interface OfflineTransactionPayload {
-  offlineId: string; // ID unik untuk local, misal timestamp
+  offlineId: string;
   cashierName: string;
   items: {
     productId: string;
     nama: string;
     harga: number;
     quantity: number;
-    notes?: string; // ✅ tambahkan notes juga
+    fotoUrl: string; // Disesuaikan dengan backend (fotoUrl), bukan gambar
   }[];
   totalPrice: number;
   paymentAmount: number;
@@ -37,7 +40,7 @@ export interface OfflineTransactionPayload {
 // ======================
 const MENU_CACHE_KEY = 'menuCache';
 const TRANSACTION_QUEUE_KEY = 'transactionQueue';
-const TRANSACTION_HISTORY_KEY = 'transactionHistory'; // ✅ baru ditambahkan
+const TRANSACTION_HISTORY_KEY = 'transactionHistory';
 
 // ======================
 // HELPER UNTUK LOCALSTORAGE
@@ -91,13 +94,11 @@ export const clearTransactionQueue = () => {
 // CACHE HISTORY TRANSAKSI
 // ======================
 
-// Simpan history transaksi ke cache
 export const saveHistoryToCache = (history: OfflineTransactionPayload[]) => {
   setItem(TRANSACTION_HISTORY_KEY, history);
   console.log('✅ Riwayat transaksi disimpan ke cache lokal.');
 };
 
-// Ambil history transaksi dari cache
 export const getHistoryFromCache = (): OfflineTransactionPayload[] | null => {
   const data = getItem(TRANSACTION_HISTORY_KEY);
   if (data) {
@@ -108,7 +109,6 @@ export const getHistoryFromCache = (): OfflineTransactionPayload[] | null => {
   return data;
 };
 
-// Hapus cache history
 export const clearHistoryCache = () => {
   setItem(TRANSACTION_HISTORY_KEY, []);
   console.log('🗑️ Riwayat transaksi dihapus dari cache lokal.');
