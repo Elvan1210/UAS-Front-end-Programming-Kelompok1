@@ -33,8 +33,15 @@ export const syncPendingTransactions = async () => {
   const failedTransactions: OfflineTransactionPayload[] = [];
   
   for (const tx of queue) {
+    // Mapping ulang agar sesuai dengan Backend Order.js
     const payload = {
-      items: tx.items,
+      items: tx.items.map(item => ({
+        productId: item.productId,
+        nama: item.nama,
+        harga: item.harga,
+        quantity: item.quantity,
+        fotoUrl: item.fotoUrl // Field ini harus ada di Backend Schema
+      })),
       totalPrice: tx.totalPrice,
       paymentAmount: tx.paymentAmount,
       changeAmount: tx.changeAmount,
@@ -51,7 +58,9 @@ export const syncPendingTransactions = async () => {
       });
 
       if (!res.ok) {
-        console.warn(`❌ Gagal sinkronisasi transaksi ${tx.offlineId}, server merespon error.`);
+        // Cek pesan error
+        const errorData = await res.json();
+        console.warn(`❌ Gagal sinkronisasi transaksi ${tx.offlineId}:`, errorData.message);
         failedTransactions.push(tx);
       } else {
         console.log(`✅ Transaksi ${tx.offlineId} berhasil disinkronisasi.`);
