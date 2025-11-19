@@ -3,11 +3,12 @@ const bcrypt = require('bcryptjs');
 
 const Schema = mongoose.Schema;
 
+// DEFINISI SCHEMA: Struktur data user (Admin/Kasir)
 const akunSchema = new Schema({
   email: {
     type: String,
     required: [true, 'Email wajib diisi'],
-    unique: true, 
+    unique: true, // Mencegah pendaftaran email yang sama
     lowercase: true,
     trim: true
   },
@@ -23,9 +24,11 @@ const akunSchema = new Schema({
     default: 'kasir'
   }
 }, {
-  timestamps: true, 
+  timestamps: true,
 });
 
+// Jalan SEBELUM data disimpan (pre-save).
+// Kalau password baru/diedit, langsung di-hash biar aman (gak kebaca manusia).
 akunSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
 
@@ -38,10 +41,14 @@ akunSchema.pre('save', async function(next) {
   }
 });
 
+// METHOD: Cek Password saat Login
+// Dipanggil manual nanti di Auth Controller.
+// Membandingkan password ketikan user vs password hash di database.
 akunSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Export model, paksa nama collection jadi 'users'
 const Akun = mongoose.model('Akun', akunSchema, 'users');
 
 module.exports = Akun;

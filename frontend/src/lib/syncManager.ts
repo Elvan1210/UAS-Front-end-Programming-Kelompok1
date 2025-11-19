@@ -8,7 +8,7 @@ import {
   type OfflineTransactionPayload 
 } from './offlineStorage';
 
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // Flag untuk mencegah sinkronisasi ganda
 let isSyncing = false;

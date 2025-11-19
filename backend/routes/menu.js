@@ -1,8 +1,10 @@
 const router = require('express').Router();
 const Menu = require('../models/menu.model');
 const cloudinary = require('cloudinary').v2;
-const fs = require('fs'); 
+const fs = require('fs'); // File System: buat hapus file temp setelah upload
 
+// FUNGSI 1: Tambah Menu Baru (+ Upload Gambar)
+// Menerima input text dan file gambar.
 router.post('/add', async (req, res) => {
   try {
     const { nama, harga, category, stock } = req.body; 
@@ -12,12 +14,19 @@ router.post('/add', async (req, res) => {
       return res.status(400).json({ message: 'Nama, harga, kategori, dan stok wajib diisi.' });
     }
 
+    // Cek apakah ada file gambar yang diupload?
     if (req.files && req.files.gambar) {
       const file = req.files.gambar;
+      
+      // 1. Upload gambar dari folder sementara ke Cloudinary
       const result = await cloudinary.uploader.upload(file.tempFilePath, {
         folder: 'kasir-umkm-menu',
       });
+
+      // 2. Ambil URL hasil upload
       gambarURL = result.secure_url;
+      
+      // 3. Hapus file di folder sementara server biar gak penuh sampah
       fs.unlinkSync(file.tempFilePath);
     }
     
@@ -44,6 +53,7 @@ router.post('/add', async (req, res) => {
   }
 });
 
+// FUNGSI 2: Ambil semua daftar menu
 router.get('/', async (req, res) => {
   try {
     const menus = await Menu.find(); 
@@ -54,6 +64,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+// FUNGSI 3: Ambil detail satu menu (berdasarkan ID)
 router.get('/:id', async (req, res) => {
     try {
         const menu = await Menu.findById(req.params.id);
@@ -66,30 +77,37 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// FUNGSI 4: Update Menu
+// Bisa update text saja, atau update text + ganti gambar baru.
 router.put('/update/:id', async (req, res) => {
   try {
     const { nama, harga, category, stock } = req.body;
     let updatedData = { nama, harga, category, stock };
 
+    // Skenario A: Ada file gambar baru yang diupload
     if (req.files && req.files.gambar) {
         const file = req.files.gambar;
         
+        // Upload ke Cloudinary
         const result = await cloudinary.uploader.upload(file.tempFilePath, {
             folder: 'kasir-umkm-menu',
         });
         
+        // Update URL di database
         updatedData.gambar = result.secure_url;
         
+        // Bersihkan file temp
         fs.unlinkSync(file.tempFilePath);
         
+    // Skenario B: User mau hapus gambar (kirim string kosong)
     } else if (req.body.gambar === '') {
-                updatedData.gambar = null;
+        updatedData.gambar = null;
     }
     
     const updatedMenu = await Menu.findByIdAndUpdate(
       req.params.id,
       updatedData, 
-      { new: true } 
+      { new: true } // Return data yang sudah diperbarui
     );
 
     if (!updatedMenu) {
@@ -103,6 +121,7 @@ router.put('/update/:id', async (req, res) => {
   }
 });
 
+// FUNGSI 5: Hapus Menu
 router.delete('/:id', async (req, res) => {
   try {
     const deletedMenu = await Menu.findByIdAndDelete(req.params.id);
