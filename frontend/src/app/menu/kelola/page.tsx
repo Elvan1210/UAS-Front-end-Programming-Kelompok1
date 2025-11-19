@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 // 1. IMPORT hook yang diperlukan
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/Context/AuthContext"; // <-- 2. IMPORT AUTH CONTEXT
+import { useAuth } from "@/Context/AuthContext"; 
 
 const API_URL = "http://localhost:5000";
 
@@ -33,28 +35,40 @@ const ContentHeader = ({ title }: { title: string }) => (
 
 export default function KelolaMenuPage() {
   const [products, setProducts] = useState<Product[]>([]);
-  // 'loading' ini untuk 'fetchProducts', BUKAN auth
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState<any>(null);
   const [currentProduct, setCurrentProduct] = useState<any | null>(null);
   const [newFileGambar, setNewFileGambar] = useState<File | null>(null);
   const router = useRouter();
 
-  // <-- 3. AMBIL STATUS AUTH DARI CONTEXT
-  // Kita pakai 'authLoading' agar tidak bentrok dengan state 'loading' Anda
+  // STATE BARU: Untuk Pencarian
+  const [searchQuery, setSearchQuery] = useState(""); 
+
   const { user, loading: authLoading } = useAuth();
 
+  // PERBAIKAN LOGIKA IMPORT BOOTSTRAP (Versi Async/Await)
+  // Ini lebih aman karena kita 'menunggu' (await) sampai file selesai dimuat
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const bootstrap = require("bootstrap/dist/js/bootstrap.bundle.min.js");
-      const modalEl = document.getElementById("editProductModal");
-      if (modalEl) {
-        setEditModal(new bootstrap.Modal(modalEl));
-      }
+      const loadBootstrap = async () => {
+        try {
+          // Kita 'await' import-nya, lalu kita simpan di variabel bootstrap
+          const bootstrap: any = await import("bootstrap/dist/js/bootstrap.bundle.min.js");
+          
+          const modalEl = document.getElementById("editProductModal");
+          if (modalEl) {
+            // Sekarang bootstrap sudah berisi modul yang siap pakai
+            setEditModal(new bootstrap.Modal(modalEl));
+          }
+        } catch (error) {
+          console.error("Gagal memuat bootstrap:", error);
+        }
+      };
+
+      loadBootstrap();
     }
   }, []);
 
-  // <-- 4. KITA BUNGKUS fetchProducts DENGAN useCallback
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -78,24 +92,24 @@ export default function KelolaMenuPage() {
       console.error("Gagal mengambil produk:", error);
     }
     setLoading(false);
-  }, []); // Dependensi kosong karena tidak bergantung state/props
+  }, []);
 
-  // <-- 5. UBAH TOTAL LOGIC useEffect INI (LOGIC PROTEKSI)
   useEffect(() => {
-    // 1. Tunggu sampai context selesai mengecek auth
     if (authLoading) {
-      return; // Jangan lakukan apa-apa
+      return; 
     }
 
-    // 2. Auth selesai dicek, kita lihat hasilnya
     if (!user) {
-      // Jika TIDAK ada user, "mental" ke login
       router.push('/login');
     } else {
-      // Jika ADA user, baru ambil data produk
       fetchProducts();
     }
-  }, [user, authLoading, router, fetchProducts]); // Ini adalah dependensi yang benar
+  }, [user, authLoading, router, fetchProducts]);
+
+  // LOGIKA FILTER: Menyaring produk berdasarkan nama yang diketik
+  const filteredProducts = products.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleDelete = async (id: string) => {
     if (confirm("Apakah Anda yakin ingin menghapus menu ini?")) {
@@ -157,7 +171,7 @@ export default function KelolaMenuPage() {
 
       if (type === 'file' && e.target instanceof HTMLInputElement && e.target.files && e.target.files[0]) {
         setNewFileGambar(e.target.files[0]);
-        setCurrentProduct({ ...currentProduct, image: URL.createObjectURL(e.target.files[0]) }); // Tampilkan preview (opsional)
+        setCurrentProduct({ ...currentProduct, image: URL.createObjectURL(e.target.files[0]) });
         return;
       }
 
@@ -180,26 +194,44 @@ export default function KelolaMenuPage() {
     }
   };
 
-  // <-- 6. TAMBAHKAN "GERBANG LOADING" UNTUK AUTH
-  // Ini akan menampilkan "Loading..." halaman penuh SEBELUM
-  // halaman kelola Anda dirender, ini mencegah "kedipan".
   if (authLoading || !user) {
     return (
       <div className="container mt-5 text-center">
         <h3>Mengecek otentikasi...</h3>
-        {/* Anda bisa tambahkan spinner di sini */}
       </div>
     );
   }
 
-  // <-- 7. KODE RETURN ANDA DI BAWAH INI SEKARANG AMAN
-  // Ini hanya akan dieksekusi jika 'authLoading' selesai DAN 'user' ada.
   return (
     <>
       <ContentHeader title="Lihat & Kelola Menu" />
-      <Link href="/menu" className="btn btn-outline-secondary mb-3">
-        <i className="bi bi-arrow-left-circle-fill"></i> Kembali
-      </Link>
+      
+      {/* === AREA HEADER: TOMBOL KEMBALI & SEARCH BAR === */}
+      <div className="row mb-4 align-items-center">
+        {/* Kolom Kiri: Tombol Kembali */}
+        <div className="col-12 col-md-6 mb-3 mb-md-0">
+          <Link href="/menu" className="btn btn-outline-secondary">
+            <i className="bi bi-arrow-left-circle-fill me-2"></i> Kembali
+          </Link>
+        </div>
+
+        {/* Kolom Kanan: Search Bar (Responsif) */}
+        <div className="col-12 col-md-6">
+          <div className="input-group">
+            <span className="input-group-text bg-white border-end-0">
+              <i className="bi bi-search text-muted"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control border-start-0 ps-0"
+              placeholder="Cari nama menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ boxShadow: 'none' }} 
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="content-card">
         <div className="table-responsive">
@@ -220,12 +252,16 @@ export default function KelolaMenuPage() {
                 <tr>
                   <td colSpan={7} className="text-center">Memuat data...</td>
                 </tr>
-              ) : products.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
+                // Handle jika pencarian kosong
                 <tr>
-                  <td colSpan={7} className="text-center">Belum ada produk.</td>
+                  <td colSpan={7} className="text-center py-4 text-muted">
+                    {searchQuery ? `Menu "${searchQuery}" tidak ditemukan.` : "Belum ada produk."}
+                  </td>
                 </tr>
               ) : (
-                products.map((product) => (
+                // Loop menggunakan filteredProducts
+                filteredProducts.map((product) => (
                   <tr key={product._id}>
                     <td>
                       <img
@@ -270,7 +306,7 @@ export default function KelolaMenuPage() {
         </div>
       </div>
 
-      {/* */}
+      {/* MODAL EDIT */}
       <div className="modal fade" id="editProductModal" tabIndex={-1}>
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
