@@ -253,4 +253,274 @@ html, body {
     margin: 0 !important;
     padding: 0 !important;
 }
+
+/* ===== RESPONSIVE LAYOUT (MOBILE) ===== */
+
+/* Tombol Burger (Garis 3) - Default disembunyikan di Desktop */
+.mobile-toggle-btn {
+  display: none; /* Hilang di laptop */
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 1rem;
+}
+
+/* Overlay Gelap saat sidebar muncul di HP */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999; /* Di bawah sidebar, di atas konten */
+}
+
+/* --- MEDIA QUERY: KETIKA LAYAR KECIL (< 992px) --- */
+@media (max-width: 992px) {
+  
+  /* 1. Sidebar sembunyi ke kiri */
+  .sidebar {
+    left: -260px; /* Geser ke luar layar */
+    transition: all 0.3s ease-in-out; /* Animasi halus */
+  }
+
+  /* 2. Sidebar Muncul jika ada class 'active' */
+  .sidebar.active {
+    left: 0; /* Balik ke posisi semula */
+    box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+  }
+
+  /* 3. Main Content jadi lebar penuh */
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 1.5rem; /* Kurangi padding biar ga sempit */
+  }
+
+  /* 4. Munculkan Tombol Burger */
+  .mobile-toggle-btn {
+    display: block;
+  }
+
+  /* 5. Overlay aktif jika sidebar aktif */
+  .sidebar-overlay.active {
+    display: block;
+  }
+}
+
+/* ===== RESPONSIF HALAMAN KASIR (MOBILE) ===== */
+@media (max-width: 992px) {
+  
+  /* 1. UBAH KONTAINER JADI VERTIKAL */
+  .pos-container {
+    flex-direction: column; /* Tumpuk atas-bawah */
+    height: auto !important; /* Matikan tinggi fix 100vh */
+    overflow: visible !important; /* Izinkan scroll halaman */
+    padding-bottom: 80px; /* Ruang kosong di bawah */
+  }
+
+  /* 2. ATUR BAGIAN MENU (DI ATAS) */
+  .product-pane {
+    width: 100%; /* Lebar penuh */
+    height: auto !important; /* Tinggi menyesuaikan isi */
+    overflow-y: visible !important;
+    padding-right: 0; /* Hapus jarak kanan */
+    margin-bottom: 2rem; /* Jarak pemisah dengan keranjang */
+  }
+
+  /* 3. ATUR BAGIAN KERANJANG (DI BAWAH) */
+  .cart-pane {
+    width: 100%; /* Lebar penuh */
+    height: auto !important;
+    border-left: none; /* Hapus garis pemisah kiri */
+    border-top: 1px solid var(--border-color); /* Ganti jadi garis atas */
+    margin-top: 1rem;
+  }
+
+  /* Opsional: Sembunyikan scrollbar menu kategori di HP biar rapi */
+  #category-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 10px;
+  }
+}
+
+/* ===== UBAH TABEL JADI KARTU (MODERN MOBILE VIEW) ===== */
+@media (max-width: 992px) {
+  
+  /* 1. Matikan struktur tabel biasa */
+  .table, .table tbody, .table tr, .table td {
+    display: block;
+    width: 100%;
+  }
+
+  /* 2. Sembunyikan Header (Judul Kolom) karena sudah tidak relevan */
+  .table thead {
+    display: none;
+  }
+
+  /* 3. Ubah Baris (TR) menjadi Kartu */
+  .table tbody tr {
+    background-color: var(--card-bg);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 16px; /* Sudut lebih bulat */
+    padding: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Bayangan biar timbul */
+    text-align: center; /* Rata tengah semua isi */
+  }
+
+  /* 4. Reset border pada setiap sel */
+  .table tbody td {
+    border: none !important;
+    padding: 0.5rem 0;
+  }
+
+  /* --- MODIFIKASI PER KOLOM (Berdasarkan Urutan) --- */
+
+  /* Kolom 1: Foto */
+  .table tbody td:nth-child(1) {
+    margin-bottom: 0.5rem;
+  }
+  .table tbody td:nth-child(1) img {
+    width: 100px !important;
+    height: 100px !important;
+    border-radius: 50%; /* Foto jadi bulat */
+    object-fit: cover;
+    border: 3px solid var(--primary-color); /* Ring warna tema */
+  }
+
+  /* Kolom 2: ID (Sembunyikan labelnya, buat kecil) */
+  .table tbody td:nth-child(2) {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+  }
+  .table tbody td:nth-child(2)::before {
+    content: "ID: "; /* Tambah label otomatis */
+  }
+
+  /* Kolom 3: Nama Menu (Judul Utama) */
+  .table tbody td:nth-child(3) {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+  }
+
+  /* Kolom 4: Kategori (Badge) */
+  .table tbody td:nth-child(4) {
+    margin-bottom: 1.5rem;
+  }
+
+  /* Kolom 5 (Harga) & 6 (Stok) -> Buat Grid Berdampingan */
+  .table tbody td:nth-child(5),
+  .table tbody td:nth-child(6) {
+    display: inline-block;
+    width: 48%; /* Setengah lebar */
+    background-color: var(--light-color); /* Background lebih gelap dikit */
+    padding: 10px;
+    border-radius: 10px;
+    margin: 0 1% 10px 1%;
+    vertical-align: top;
+  }
+  
+  /* Tambahkan Label "Harga" dan "Stok" secara otomatis pakai CSS */
+  .table tbody td:nth-child(5)::before { 
+    content: "Harga"; display: block; font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .table tbody td:nth-child(5) { font-weight: bold; color: var(--primary-color); font-size: 1.1rem; }
+
+  .table tbody td:nth-child(6)::before { 
+    content: "Stok"; display: block; font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .table tbody td:nth-child(6) { font-weight: bold; font-size: 1.1rem; }
+
+  /* Kolom 7: Tombol Aksi */
+  .table tbody td:nth-child(7) {
+    margin-top: 1rem;
+    display: flex;
+    gap: 10px;
+  }
+  .table tbody td:nth-child(7) .btn {
+    flex: 1; /* Tombol memenuhi lebar */
+    padding: 10px;
+    border-radius: 8px;
+  }
+}
+
+/* ===== KHUSUS TABEL TRANSAKSI (MOBILE FIX) ===== */
+@media (max-width: 992px) {
+
+  /* Target tabel yang punya class 'transaction-table' */
+  
+  /* 1. Reset Baris agar Rata Kiri */
+  .transaction-table.table tbody tr {
+    text-align: left !important; /* Paksa rata kiri */
+    padding-bottom: 1rem;
+  }
+
+  /* 2. Header Kartu (ID & Tanggal) */
+  .transaction-table.table tbody td:nth-child(1) {
+    /* ... style header sebelumnya ... */
+    text-align: center !important;
+  }
+  .transaction-table.table tbody td:nth-child(2) {
+    /* ... style tanggal sebelumnya ... */
+    text-align: center !important;
+  }
+  .transaction-table.table tbody td:nth-child(3),
+  .transaction-table.table tbody td:nth-child(4) {
+     text-align: center !important;
+  }
+
+  /* --- BAGIAN PENTING: PERBAIKAN LIST ITEM & TOMBOL --- */
+
+  /* 3. ITEM LIST (KOLOM 5) - Hancurkan Kotak "HARGA" */
+  .transaction-table.table tbody td:nth-child(5) {
+    display: block !important;
+    width: 100% !important;       /* Lebar penuh */
+    background: none !important;  /* Hapus background abu-abu */
+    background-color: transparent !important;
+    margin: 0 !important;
+    padding: 10px 15px !important;
+    text-align: left !important;  /* Rata kiri biar list rapi */
+    border-radius: 0 !important;
+    position: static !important;  /* Reset posisi */
+  }
+
+  /* HAPUS TULISAN "HARGA" */
+  .transaction-table.table tbody td:nth-child(5)::before {
+    content: none !important;     /* Hapus teks 'HARGA' */
+    display: none !important;
+  }
+
+  /* 4. TOMBOL DETAIL (KOLOM 6) - Hancurkan Kotak "STOK" */
+  .transaction-table.table tbody td:nth-child(6) {
+    display: block !important;
+    width: 100% !important;
+    background: none !important;
+    background-color: transparent !important;
+    margin-top: 10px !important;
+    padding: 0 15px 15px 15px !important;
+    border-radius: 0 !important;
+  }
+
+  /* HAPUS TULISAN "STOK" */
+  .transaction-table.table tbody td:nth-child(6)::before {
+    content: none !important;     /* Hapus teks 'STOK' */
+    display: none !important;
+  }
+
+  /* Bikin tombolnya lebar penuh biar enak dipencet */
+  .transaction-table.table tbody td:nth-child(6) .btn {
+    width: 100% !important;
+    display: block;
+  }
+}
 /* --- AKHIR CSS KUSTOM --- */

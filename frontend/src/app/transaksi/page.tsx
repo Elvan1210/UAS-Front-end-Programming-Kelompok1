@@ -163,7 +163,7 @@ export default function TransaksiPage() {
 
       <div className="content-card">
         <div className="table-responsive">
-          <table className="table table-hover align-middle content-table">
+          <table className="table table-hover align-middle content-table transaction-table">
             <thead className="table-light">
               <tr>
                 <th>ID Transaksi</th>
