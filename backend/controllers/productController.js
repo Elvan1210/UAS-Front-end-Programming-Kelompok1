@@ -1,5 +1,7 @@
 const Product = require('../models/product.model');
 
+// FUNGSI 1: Ambil semua data produk yang aktif saja
+// Mengambil produk yang 'isActive: true' dan diurutkan sesuai abjad nama (A-Z).
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ isActive: true }).sort({ name: 1 });
@@ -16,6 +18,8 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+// FUNGSI 2: Ambil detail satu produk berdasarkan ID
+// Biasanya dipakai saat mau klik detail produk atau mau mengisi form edit.
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -38,6 +42,8 @@ exports.getProductById = async (req, res) => {
   }
 };
 
+// FUNGSI 3: Tambah produk baru ke database
+// Menerima input nama, harga, stok, kategori, dan gambar.
 exports.createProduct = async (req, res) => {
   try {
     const { name, price, stock, category, image } = req.body;
@@ -66,6 +72,8 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+// FUNGSI 4: Update data produk yang sudah ada
+// Mengubah data produk berdasarkan ID yang dikirim.
 exports.updateProduct = async (req, res) => {
   try {
     const { name, price, stock, category, image, isActive } = req.body;
@@ -97,6 +105,8 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+// FUNGSI 5: Hapus produk secara 'Soft Delete'
+// NOTE: Data TIDAK dihapus dari database, cuma status 'isActive' diubah jadi false biar tidak muncul di aplikasi.
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(

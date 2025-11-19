@@ -100,15 +100,13 @@ router.post('/login', async (req, res) => {
     if (user && (await user.matchPassword(password))) {
       const token = generateToken(user._id);
 
-      // --- PERUBAHAN DI SINI ---
       // Sekarang kita kirim 'role' juga ke frontend
       res.status(200).json({
         message: 'Login berhasil!',
         email: user.email,
         token: token,
-        role: user.role // <-- PENTING UNTUK FRONTEND
+        role: user.role 
       });
-      // --- AKHIR PERUBAHAN ---
 
     } else {
       res.status(401).json({ message: 'Email atau password salah.' });

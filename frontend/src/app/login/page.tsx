@@ -10,7 +10,7 @@ import { useAuth } from '@/Context/AuthContext';
 import styles from './login.module.css';
 
 // Sesuaikan URL Backend
-const API_BASE_URL = 'http://localhost:5000/api/akun';
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/akun`;
 
 // ==========================================================
 // KOMPONEN FORM LOGIN (Style Baru)

@@ -1,9 +1,8 @@
-// controllers/transactionController.js (VERSI BARU YANG SUDAH DIPERBAIKI)
+const Order = require('../models/Order.js'); 
+const Menu = require('../models/menu.model.js'); 
 
-const Order = require('../models/Order.js'); // GANTI DARI 'Transaction' ke 'Order'
-const Menu = require('../models/menu.model.js'); // GANTI DARI 'Product' ke 'Menu'
-
-// Fungsi ini TIDAK DIPAKAI LAGI, tapi kita biarkan agar router tidak error
+// Fungsi ini cuma disimpan supaya tidak perlu ubah-ubah file Router. 
+// Logika transaksi baru ada di 'createOrder' (file orderController).
 exports.createTransaction = async (req, res) => {
     console.log("PERINGATAN: createTransaction dipanggil, seharusnya createOrder.");
     res.status(500).json({ 
@@ -12,15 +11,15 @@ exports.createTransaction = async (req, res) => {
     });
 };
 
-// Get semua transaksi (MEMBACA DARI 'Order')
+// FUNGSI 1: Ambil semua riwayat transaksi
+// Mengambil data dari model 'Order' dan diurutkan dari yang paling baru (Newest First).
 exports.getAllTransactions = async (req, res) => {
   try {
-    const transactions = await Order.find() // GANTI: Membaca dari Order
-      .sort({ createdAt: -1 });
+    const transactions = await Order.find().sort({ createdAt: -1 });
     
     res.status(200).json({
       success: true,
-      data: transactions // Frontend Anda mengharapkan objek { success: true, data: ... }
+      data: transactions 
     });
   } catch (error) {
     res.status(500).json({
@@ -31,10 +30,11 @@ exports.getAllTransactions = async (req, res) => {
   }
 };
 
-// Get transaksi by ID (MEMBACA DARI 'Order')
+// FUNGSI 2: Lihat detail satu transaksi
+// Dipakai kalau mau lihat detail pesanan (misal: struk digital).
 exports.getTransactionById = async (req, res) => {
   try {
-    const transaction = await Order.findById(req.params.id); // GANTI: Membaca dari Order
+    const transaction = await Order.findById(req.params.id); 
     
     if (!transaction) {
       return res.status(404).json({
@@ -56,23 +56,26 @@ exports.getTransactionById = async (req, res) => {
   }
 };
 
-// Get laporan harian (MEMBACA DARI 'Order' DAN FIELD YANG BENAR)
+// FUNGSI 3: Laporan Harian (Rekap Kasir)
+// Menghitung total uang masuk dari jam 00:00 sampai 23:59 hari ini.
 exports.getDailyReport = async (req, res) => {
   try {
+    // Set range waktu hari ini
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const transactions = await Order.find({ // GANTI: Membaca dari Order
-      createdAt: { // GANTI: Field 'createdAt' (dari timestamps)
+    // Cari transaksi dalam rentang waktu tersebut
+    const transactions = await Order.find({ 
+      createdAt: { 
         $gte: today,
         $lt: tomorrow
       }
     });
 
-    // GANTI: Field 'totalPrice'
+    // Hitung total omzet
     const totalSales = transactions.reduce((sum, t) => sum + t.totalPrice, 0); 
     const totalTransactions = transactions.length;
 
@@ -94,11 +97,12 @@ exports.getDailyReport = async (req, res) => {
     }
   };
 
-// Hapus transaksi (MENGHAPUS DARI 'Order')
+// FUNGSI 4: Hapus Transaksi & Restore Stok (PENTING!)
+// Kalau transaksi dihapus, stok barang yang tadinya terbeli AKAN DIKEMBALIKAN ke menu.
 exports.deleteTransactionById = async (req, res) => {
   try {
     const transactionId = req.params.id;
-    const transaction = await Order.findById(transactionId); // GANTI: Membaca dari Order
+    const transaction = await Order.findById(transactionId); 
 
     if (!transaction) {
       return res.status(404).json({
@@ -107,17 +111,17 @@ exports.deleteTransactionById = async (req, res) => {
       });
     }
 
-    // Kembalikan stok produk (menggunakan model 'Menu')
+    // LOOPING: Kembalikan stok setiap item ke model 'Menu' sebelum transaksi dihapus
     for (const item of transaction.items) {
-      await Menu.findByIdAndUpdate(item.productId, { // GANTI: Model 'Menu'
-        $inc: { stock: item.quantity },
+      await Menu.findByIdAndUpdate(item.productId, { 
+        $inc: { stock: item.quantity }, // $inc menambah stok yang ada
       });
     }
 
-    // Hapus transaksinya
-    await Order.findByIdAndDelete(transactionId); // GANTI: Menghapus dari Order
+    // Hapus data riwayat ordernya
+    await Order.findByIdAndDelete(transactionId); 
 
-res.status(200).json({
+    res.status(200).json({
       success: true,
       message: 'Transaksi berhasil dihapus dan stok telah dikembalikan',
     });

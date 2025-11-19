@@ -1,4 +1,4 @@
-// app/dashboard/page.tsx (VERSI PERBAIKAN LENGKAP)
+// app/dashboard/page.tsx (VERSI PERBAIKAN - FIXED DATA FETCHING)
 "use client";
 
 import { useEffect, useState } from "react";
@@ -34,7 +34,7 @@ const ContentHeader = ({ title }: { title: string }) => {
   );
 };
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const formatCurrency = (number: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -90,39 +90,66 @@ export default function DashboardPage() {
   const [popularMenu, setPopularMenu] = useState<PopularMenuItem[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      // 1. Ambil data transaksi
-      const transRes = await fetch(`${API_URL}/transactions`);
-      const transactionResponse = await transRes.json();
-      const allTransactions = transactionResponse.data || [];
+      // 1. Ambil data transaksi - PERBAIKAN ENDPOINT
+      console.log('📡 Fetching transactions...');
+      const transRes = await fetch(`${API_URL}/api/transactions`);
+      const transactionData = await transRes.json();
+      
+      console.log('📦 Transaction Response:', transactionData);
+
+      // PERBAIKAN: Handle response structure yang benar
+      let allTransactions = [];
+      if (transactionData.success && Array.isArray(transactionData.data)) {
+        allTransactions = transactionData.data;
+      } else if (Array.isArray(transactionData)) {
+        allTransactions = transactionData;
+      } else {
+        console.warn('⚠️ Format respons transaksi tidak dikenali:', transactionData);
+        allTransactions = [];
+      }
+
+      console.log(`✅ Loaded ${allTransactions.length} transactions`);
 
       // 2. Ambil data produk
-      const prodRes = await fetch('http://localhost:5000/menu');
+      console.log('📡 Fetching products...');
+      const prodRes = await fetch(`${API_URL}/menu`);
       const allProducts: Product[] = await prodRes.json();
       setTotalProducts(allProducts.length || 0);
+      console.log(`✅ Loaded ${allProducts.length} products`);
 
       // 3. Filter transaksi hari ini
       const todayStr = new Date().toISOString().split('T')[0];
-      const todayTransactions = allTransactions.filter((tx: any) =>
-        tx.createdAt && tx.createdAt.startsWith(todayStr)
-      );
+      const todayTransactions = allTransactions.filter((tx: any) => {
+        if (!tx.createdAt) return false;
+        const txDate = tx.createdAt.split('T')[0];
+        return txDate === todayStr;
+      });
+
+      console.log(`📊 Today's transactions: ${todayTransactions.length}`);
 
       // 4. Hitung pendapatan hari ini
       const revenueToday = todayTransactions.reduce((sum: number, tx: any) => 
-        sum + tx.totalPrice, 0
+        sum + (tx.totalPrice || 0), 0
       );
       setTotalRevenue(revenueToday);
       setTotalOrders(todayTransactions.length);
 
-      // 5. Hitung menu populer
+      // 5. Hitung menu populer (dari transaksi hari ini)
       const itemCounts: { [key: string]: number } = {};
       todayTransactions.forEach((tx: any) => {
-        tx.items.forEach((item: any) => {
-          itemCounts[item.nama] = (itemCounts[item.nama] || 0) + item.quantity;
-        });
+        if (tx.items && Array.isArray(tx.items)) {
+          tx.items.forEach((item: any) => {
+            const itemName = item.nama || item.name || 'Unknown';
+            itemCounts[itemName] = (itemCounts[itemName] || 0) + (item.quantity || 0);
+          });
+        }
       });
 
       // 6. Map menu populer dengan gambar
@@ -139,16 +166,26 @@ export default function DashboardPage() {
         });
       setPopularMenu(sortedPopular);
 
-      // 7. Ambil pesanan terbaru (5 terakhir)
+      console.log('🏆 Popular menu items:', sortedPopular);
+
+      // 7. Ambil pesanan terbaru (5 terakhir dari SEMUA transaksi)
       const sortedRecent = [...allTransactions]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          return dateB - dateA;
+        })
         .slice(0, 5);
       setRecentOrders(sortedRecent);
 
+      console.log('📋 Recent orders:', sortedRecent);
+
     } catch (error) {
-      console.error("Gagal mengambil data dashboard:", error);
+      console.error("❌ Gagal mengambil data dashboard:", error);
+      setError("Gagal memuat data. Silakan refresh halaman.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -158,6 +195,25 @@ export default function DashboardPage() {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Tampilkan error jika ada
+  if (error) {
+    return (
+      <>
+        <ContentHeader title="Dashboard" />
+        <div className="alert alert-danger" role="alert">
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          {error}
+          <button 
+            className="btn btn-sm btn-outline-danger ms-3"
+            onClick={fetchData}
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -293,7 +349,7 @@ export default function DashboardPage() {
                         <div>
                           <span className="fw-bold d-block">{formatTransactionId(tx._id)}</span>
                           <small className="text-muted">
-                            {tx.items.reduce((acc: number, item: any) => acc + item.quantity, 0)} item
+                            {tx.items.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0)} item
                           </small>
                         </div>
                         <span className="text-success fw-bold">

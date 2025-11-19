@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/Context/AuthContext"; // <-- IMPORT AUTH
 
-const API_URL = 'http://localhost:5000/menu/add'; 
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/menu/add`;
 
 const ContentHeader = ({ title }: { title: string }) => {
     return (
