@@ -22,12 +22,21 @@ cloudinary.config({
   secure: true
 });
 
-// 3. GLOBAL MIDDLEWARE
-// cors: Mengizinkan Frontend (beda domain) untuk mengakses Backend ini.
-app.use(cors());
+// 3. GLOBAL MIDDLEWARE (UPDATE PENTING DI SINI)
+// cors: Mengizinkan Frontend Vercel & Localhost mengakses Backend ini.
+app.use(cors({
+  origin: [
+    "http://localhost:3000", // Untuk tes di laptop
+    "https://uas-front-end-programming-kelompok1.vercel.app" // Link Vercel Produksi
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE']
+}));
+
 // express.json: Agar server bisa membaca data format JSON yang dikirim Frontend.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 // fileUpload: Menangani upload gambar sementara sebelum dikirim ke Cloudinary.
 app.use(fileUpload({
   useTempFiles: true,
