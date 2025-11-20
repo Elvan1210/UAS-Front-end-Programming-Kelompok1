@@ -13,6 +13,9 @@ import {
   type OfflineTransactionPayload
 } from '@/lib/offlineStorage';
 
+// === IMPORT GAMBAR LANGSUNG (JURUS BUNDLING) ===
+import qrisGambar from './qris-kantin.jpg'; 
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 interface Product {
@@ -26,7 +29,7 @@ interface Product {
 
 interface CartItem extends Product {
   quantity: number;
-  notes?: string; // Kita biarkan di UI untuk user experience, tapi tidak dikirim ke DB
+  notes?: string; 
 }
 
 const formatCurrency = (number: number) => {
@@ -61,15 +64,13 @@ export default function KasirPage() {
     change: 0 
   });
 
-  // === STATE OFFLINE ===
   const [isOffline, setIsOffline] = useState(false);
 
-  // === STATE UNTUK NOTES MODAL ===
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [currentNotesItemId, setCurrentNotesItemId] = useState<string>('');
   const [tempNotes, setTempNotes] = useState('');
 
-  // === FUNGSI FETCH PRODUCTS (WITH OFFLINE FALLBACK) ===
+  // === FUNGSI FETCH PRODUCTS ===
   const fetchProducts = async () => {
     try {
       if (typeof window !== 'undefined' && navigator.onLine) {
@@ -78,7 +79,6 @@ export default function KasirPage() {
         if (!res.ok) throw new Error('Gagal fetch dari server');
         const productResponse = await res.json();
         
-        // Mapping data dari backend (nama -> name, harga -> price)
         const formattedData: Product[] = productResponse.map((p: any) => ({
           _id: p._id,
           name: p.nama, 
@@ -104,42 +104,27 @@ export default function KasirPage() {
           const uniqueCategories = ['Semua', ...new Set(cachedMenus.map(p => p.category))];
           setCategories(uniqueCategories);
         } else {
-          console.warn("⚠️ OFFLINE: Cache menu kosong.");
-          alert('Anda sedang offline dan data menu belum tersimpan. Harap online setidaknya sekali untuk mengambil data menu.');
+          alert('Anda sedang offline dan data menu belum tersimpan.');
         }
       }
     } catch (error) {
-      console.error("❌ Gagal mengambil produk, mencoba fallback ke cache:", error);
+      console.error("❌ Error:", error);
       setIsOffline(true);
       const cachedMenus = getMenusFromCache();
       if (cachedMenus && cachedMenus.length > 0) {
-        console.log("💾 FALLBACK: Mengambil produk dari cache...");
         setProducts(cachedMenus);
         const uniqueCategories = ['Semua', ...new Set(cachedMenus.map(p => p.category))];
         setCategories(uniqueCategories);
-      } else {
-        console.error("❌ FALLBACK: Cache menu kosong.");
-        alert('Gagal mengambil data menu. Silakan cek koneksi internet Anda.');
       }
     }
   };
 
   useEffect(() => {
     fetchProducts();
+    const handleOnline = () => { setIsOffline(false); fetchProducts(); }
+    const handleOffline = () => { setIsOffline(true); }
 
-    const handleOnline = () => {
-      console.log('🌐 KasirPage: Kembali Online');
-      setIsOffline(false);
-      fetchProducts(); 
-    }
-    const handleOffline = () => {
-      console.log('📵 KasirPage: Koneksi Terputus');
-      setIsOffline(true);
-    }
-
-    if (typeof window !== 'undefined' && !navigator.onLine) {
-      setIsOffline(true);
-    }
+    if (typeof window !== 'undefined' && !navigator.onLine) setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -162,47 +147,37 @@ export default function KasirPage() {
     setChange(newChange);
   };
 
-  // === FUNGSI TAMBAH KE CART ===
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item._id === product._id);
     const productInStock = products.find(p => p._id === product._id);
-    if (!productInStock || productInStock.stock === 0) {
-      alert('Stok produk habis!');
-      return;
-    }
+    if (!productInStock || productInStock.stock === 0) return alert('Stok habis!');
+    
     if (existingItem) {
       if (existingItem.quantity < productInStock.stock) {
-        setCart(cart.map(item => 
-          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
-        ));
+        setCart(cart.map(item => item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item));
       } else {
-        alert('Stok produk tidak mencukupi!');
+        alert('Stok tidak cukup!');
       }
     } else {
       setCart([...cart, { ...product, quantity: 1, notes: '' }]);
     }
   };
 
-  // === FUNGSI KURANGI DARI CART ===
   const removeFromCart = (productId: string) => {
     const existingItem = cart.find(item => item._id === productId);
     if (existingItem) {
       if (existingItem.quantity > 1) {
-        setCart(cart.map(item => 
-          item._id === productId ? { ...item, quantity: item.quantity - 1 } : item
-        ));
+        setCart(cart.map(item => item._id === productId ? { ...item, quantity: item.quantity - 1 } : item));
       } else {
         setCart(cart.filter(item => item._id !== productId));
       }
     }
   };
 
-  // === FUNGSI HAPUS ITEM DARI CART ===
   const deleteFromCart = (productId: string) => {
     setCart(cart.filter(item => item._id !== productId));
   };
 
-  // === FUNGSI BUKA MODAL NOTES ===
   const openNotesModal = (itemId: string) => {
     const item = cart.find(i => i._id === itemId);
     setCurrentNotesItemId(itemId);
@@ -210,16 +185,12 @@ export default function KasirPage() {
     setShowNotesModal(true);
   };
 
-  // === FUNGSI SIMPAN NOTES (Hanya di UI Frontend) ===
   const saveNotes = () => {
-    setCart(cart.map(item => 
-      item._id === currentNotesItemId ? { ...item, notes: tempNotes } : item
-    ));
+    setCart(cart.map(item => item._id === currentNotesItemId ? { ...item, notes: tempNotes } : item));
     setShowNotesModal(false);
     setTempNotes('');
   };
 
-  // === FUNGSI GET QUANTITY IN CART ===
   const getCartQuantity = (productId: string): number => {
     const item = cart.find(i => i._id === productId);
     return item ? item.quantity : 0;
@@ -227,7 +198,7 @@ export default function KasirPage() {
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    fetchProducts(); // Refresh stok
+    fetchProducts(); 
   };
 
   const resetCartAndState = () => {
@@ -237,21 +208,21 @@ export default function KasirPage() {
     setShowQrisModal(false); 
   };
 
-  // === FUNGSI COMPLETE TRANSACTION (FIXED FOR BACKEND) ===
+  // === FUNGSI COMPLETE TRANSACTION (UPDATED WITH NOTES) ===
   const completeTransaction = async (method: string) => {
     const cashierName = localStorage.getItem('loggedInUser') || 'Unknown Cashier';
     const paidAmount = (method === 'QRIS') ? totalPrice : (parseFloat(amountPaid) || 0);
     const changeAmount = (method === 'QRIS') ? 0 : change;
 
-    // PERBAIKAN PENTING: Mapping data sesuai Schema Backend
     const transactionData = {
       items: cart.map(item => ({
         productId: item._id,
-        nama: item.name,      // Backend pakai 'nama'
-        harga: item.price,    // Backend pakai 'harga'
+        nama: item.name,
+        harga: item.price,
         quantity: item.quantity,
-        fotoUrl: item.gambar || '' // Backend pakai 'fotoUrl', bukan 'gambar'
-        // Field 'notes' TIDAK dikirim agar tidak error di backend lama
+        fotoUrl: item.gambar || '',
+        // === KIRIM NOTES KE BACKEND ===
+        notes: item.notes || '' 
       })),
       totalPrice: totalPrice,
       paymentAmount: paidAmount,
@@ -260,9 +231,8 @@ export default function KasirPage() {
     };
 
     if (typeof window !== 'undefined' && navigator.onLine) {
-      console.log("🌐 ONLINE: Mengirim transaksi ke server...");
+      console.log("🌐 ONLINE: Mengirim transaksi...");
       try {
-        // POST ke endpoint yang benar (sesuai route backend Anda)
         const res = await fetch(`${API_URL}/api/transactions`, { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -271,64 +241,40 @@ export default function KasirPage() {
 
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.message || 'Gagal menyimpan transaksi'); 
+          throw new Error(errorData.message || 'Gagal menyimpan'); 
         }
 
-        setSuccessData({
-          method: method,
-          total: totalPrice,
-          change: changeAmount
-        });
+        setSuccessData({ method, total: totalPrice, change: changeAmount });
         setShowSuccessModal(true); 
-        
         resetCartAndState();
-
       } catch (error: any) {
         console.error(error);
-        alert(`Terjadi kesalahan: ${error.message}`);
+        alert(`Error: ${error.message}`);
       }
     } else {
-      console.log("📵 OFFLINE: Menyimpan transaksi ke antrean...");
-
+      console.log("📵 OFFLINE: Queue transaksi...");
       const offlinePayload: OfflineTransactionPayload = {
         ...transactionData,
         offlineId: `offline-${Date.now()}`,
         cashierName: cashierName,
         createdAt: new Date().toISOString()
       };
-
       saveTransactionToQueue(offlinePayload);
-
-      setSuccessData({
-        method: method,
-        total: totalPrice,
-        change: changeAmount
-      });
+      setSuccessData({ method, total: totalPrice, change: changeAmount });
       setShowSuccessModal(true); 
-
       resetCartAndState();
     }
   };
 
   const handleProcessPayment = () => {
-    if (cart.length === 0) {
-      alert('Keranjang masih kosong!');
-      return;
-    }
-
+    if (cart.length === 0) return alert('Keranjang kosong!');
     if (paymentMethod === 'Cash') {
       const paidAmount = parseFloat(amountPaid) || 0;
-      if (paidAmount < totalPrice) {
-        alert('Jumlah bayar kurang!');
-        return;
-      }
+      if (paidAmount < totalPrice) return alert('Uang kurang!');
       completeTransaction('Cash');
-
     } else if (paymentMethod === 'QRIS') {
-      const qrData = `SIMULASI_BAYAR_KE_KANTIN_SEBESAR_${totalPrice}`;
-      setQrisImage(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}`);
+      setQrisImage(qrisGambar.src); 
       setQrisTotal(totalPrice);
-      
       setShowQrisModal(true);
     }
   };
@@ -341,338 +287,141 @@ export default function KasirPage() {
 
   return (
     <div className="pos-container cashier-container" style={{ padding: '2rem' }}>
-      
-      {/* === INDIKATOR OFFLINE === */}
       {isOffline && (
-        <div 
-          className="alert alert-warning text-center" 
-          role="alert"
-          style={{ 
-            position: 'fixed', 
-            top: '1rem', 
-            left: 'calc(var(--sidebar-width, 280px) + 2rem)', 
-            right: '2rem',
-            zIndex: 1100,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}
-        >
-          <i className="bi bi-wifi-off"></i> <strong>Mode Offline Aktif.</strong> Transaksi akan disimpan dan disinkronisasi saat kembali online.
+        <div className="alert alert-warning text-center" style={{ position: 'fixed', top: '1rem', left: '300px', right: '2rem', zIndex: 1100 }}>
+          <i className="bi bi-wifi-off"></i> <strong>Mode Offline Aktif.</strong>
         </div>
       )}
 
-      {/* Kolom Kiri - Product Pane */}
       <div className="product-pane">
         <header className="content-header" style={{ marginBottom: '1rem', padding: 0 }}>
           <h1>Pilih Menu</h1>
-          <div className="header-actions">
-            <input 
-              type="text" 
-              className="form-control" 
-              id="search-product" 
-              placeholder="Cari menu..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <input type="text" className="form-control w-50 ms-auto" placeholder="Cari menu..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </header>
 
         <div id="category-tabs" className="mb-3">
           {categories.map(category => (
-            <button 
-              key={category} 
-              className={`btn btn-outline-primary me-2 mb-2 category-btn ${currentCategory === category ? 'active' : ''}`}
-              onClick={() => setCurrentCategory(category)}
-            >
+            <button key={category} className={`btn btn-outline-primary me-2 mb-2 category-btn ${currentCategory === category ? 'active' : ''}`} onClick={() => setCurrentCategory(category)}>
               {category}
             </button>
           ))}
         </div>
 
         <div className="row product-grid" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-          {filteredProducts.length === 0 ? (
-            <p className="text-center text-muted col-12">Produk tidak ditemukan.</p>
-          ) : (
-            filteredProducts.map(product => {
-              const qtyInCart = getCartQuantity(product._id);
-              return (
-                <div key={product._id} className="col-lg-4 col-md-6 col-sm-6 col-6 mb-4">
-                  <div className="card h-100 product-item shadow-sm border-0" style={{ position: 'relative' }}>
-                    <img 
-                      src={product.gambar || 'https://via.placeholder.com/150'} 
-                      className="card-img-top"
-                      alt={product.name} 
-                      style={{ height: '150px', objectFit: 'cover', cursor: 'pointer' }}
-                      onClick={() => addToCart(product)}
-                    />
-                    
-                    {qtyInCart > 0 && (
-                      <span 
-                        className="badge bg-primary position-absolute" 
-                        style={{ top: '10px', right: '10px', fontSize: '1rem', padding: '0.5rem 0.75rem' }}
-                      >
-                        {qtyInCart}
-                      </span>
-                    )}
-
-                    <div className="card-body d-flex flex-column p-3">
-                      <h5 className="card-title fs-6 fw-bold mb-1">{product.name}</h5>
-                      <p className="card-text fw-bold text-primary mb-2">{formatCurrency(product.price)}</p>
-                      <small className="text-muted mb-2">Stok: {product.stock}</small>
-                      
-                      {qtyInCart === 0 ? (
-                        <button 
-                          className="btn btn-primary btn-sm w-100 mt-auto"
-                          onClick={() => addToCart(product)}
-                        >
-                          <i className="bi bi-plus-circle"></i> Tambah
-                        </button>
-                      ) : (
-                        <div className="d-flex align-items-center justify-content-between mt-auto">
-                          <button 
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => removeFromCart(product._id)}
-                            style={{ width: '35px', height: '35px' }}
-                          >
-                            <i className="bi bi-dash"></i>
-                          </button>
-                          <span className="fw-bold fs-5">{qtyInCart}</span>
-                          <button 
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => addToCart(product)}
-                            style={{ width: '35px', height: '35px' }}
-                            disabled={qtyInCart >= product.stock}
-                          >
-                            <i className="bi bi-plus"></i>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-      
-      {/* Kolom Kanan - Cart Pane */}
-      <aside className="cart-pane" style={{ height: 'calc(100vh - 4rem)' }}>
-        <h3 className="fw-bold mb-3">Detail Pesanan</h3>
-        
-        <ul className="list-group list-group-flush" id="cart-items" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
-          {cart.length === 0 ? (
-            <li className="list-group-item text-center text-muted">Keranjang kosong</li>
-          ) : (
-            cart.map(item => (
-              <li key={item._id} className="list-group-item">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <div style={{ flex: 1 }}>
-                    <span className="fw-bold d-block">{item.name}</span>
-                    <small className="text-muted">{formatCurrency(item.price)} x {item.quantity}</small>
-                    {item.notes && (
-                      <div className="mt-1">
-                        <small className="text-info">
-                          <i className="bi bi-sticky"></i> {item.notes}
-                        </small>
+          {filteredProducts.length === 0 ? <p className="text-center text-muted col-12">Produk tidak ditemukan.</p> : filteredProducts.map(product => {
+            const qtyInCart = getCartQuantity(product._id);
+            return (
+              <div key={product._id} className="col-lg-4 col-md-6 col-6 mb-4">
+                <div className="card h-100 shadow-sm border-0">
+                  <img src={product.gambar || 'https://via.placeholder.com/150'} className="card-img-top" style={{ height: '150px', objectFit: 'cover', cursor: 'pointer' }} onClick={() => addToCart(product)} />
+                  {qtyInCart > 0 && <span className="badge bg-primary position-absolute" style={{ top: '10px', right: '10px' }}>{qtyInCart}</span>}
+                  <div className="card-body p-3 d-flex flex-column">
+                    <h5 className="card-title fs-6 fw-bold">{product.name}</h5>
+                    <p className="text-primary fw-bold">{formatCurrency(product.price)}</p>
+                    <small className="text-muted mb-2">Stok: {product.stock}</small>
+                    {qtyInCart === 0 ? (
+                      <button className="btn btn-primary btn-sm w-100 mt-auto" onClick={() => addToCart(product)}>Tambah</button>
+                    ) : (
+                      <div className="d-flex justify-content-between align-items-center mt-auto">
+                        <button className="btn btn-outline-danger btn-sm" onClick={() => removeFromCart(product._id)}>-</button>
+                        <span className="fw-bold">{qtyInCart}</span>
+                        <button className="btn btn-outline-primary btn-sm" onClick={() => addToCart(product)} disabled={qtyInCart >= product.stock}>+</button>
                       </div>
                     )}
                   </div>
-                  <div className="text-end">
-                    <strong className="d-block mb-1">{formatCurrency(item.price * item.quantity)}</strong>
-                    <div>
-                      <button 
-                        className="btn btn-outline-info btn-sm p-1 border-0 me-1" 
-                        onClick={() => openNotesModal(item._id)}
-                        title="Tambah Catatan"
-                      >
-                        <i className="bi bi-sticky"></i>
-                      </button>
-                      <button 
-                        className="btn btn-outline-danger btn-sm p-1 border-0" 
-                        onClick={() => deleteFromCart(item._id)}
-                        title="Hapus Item"
-                      >
-                        <i className="bi bi-trash-fill"></i>
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              </li>
-            ))
-          )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      <aside className="cart-pane" style={{ height: 'calc(100vh - 4rem)' }}>
+        <h3 className="fw-bold mb-3">Detail Pesanan</h3>
+        <ul className="list-group list-group-flush" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
+          {cart.length === 0 ? <li className="list-group-item text-center text-muted">Keranjang kosong</li> : cart.map(item => (
+            <li key={item._id} className="list-group-item">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <span className="fw-bold d-block">{item.name}</span>
+                  <small className="text-muted">{formatCurrency(item.price)} x {item.quantity}</small>
+                  {item.notes && <div className="mt-1 text-info small"><i className="bi bi-sticky"></i> {item.notes}</div>}
+                </div>
+                <div className="text-end">
+                  <strong className="d-block mb-1">{formatCurrency(item.price * item.quantity)}</strong>
+                  <button className="btn btn-outline-info btn-sm p-1 me-1 border-0" onClick={() => openNotesModal(item._id)}><i className="bi bi-sticky"></i></button>
+                  <button className="btn btn-outline-danger btn-sm p-1 border-0" onClick={() => deleteFromCart(item._id)}><i className="bi bi-trash-fill"></i></button>
+                </div>
+              </div>
+            </li>
+          ))}
         </ul>
         
-        <div className="cart-summary">
-          <label className="form-label fw-bold">Metode Pembayaran</label>
-          <div id="payment-method-options" className="d-flex mb-3">
-            <input 
-              type="radio" 
-              className="btn-check" 
-              name="paymentMethod" 
-              id="payment-cash" 
-              value="Cash" 
-              checked={paymentMethod === 'Cash'}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            />
-            <label className="btn btn-outline-primary w-50 me-2" htmlFor="payment-cash">
-              <i className="bi bi-cash-coin"></i> Cash
-            </label>
-            <input 
-              type="radio" 
-              className="btn-check" 
-              name="paymentMethod" 
-              id="payment-qris" 
-              value="QRIS"
-              checked={paymentMethod === 'QRIS'}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-            />
-            <label className="btn btn-outline-primary w-50" htmlFor="payment-qris">
-              <i className="bi bi-qr-code"></i> QRIS
-            </label>
+        <div className="cart-summary mt-3">
+          <label className="fw-bold">Metode Pembayaran</label>
+          <div className="d-flex mb-3 gap-2">
+            <button className={`btn w-50 ${paymentMethod === 'Cash' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setPaymentMethod('Cash')}>Cash</button>
+            <button className={`btn w-50 ${paymentMethod === 'QRIS' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setPaymentMethod('QRIS')}>QRIS</button>
           </div>
 
           {paymentMethod === 'Cash' && (
-            <div id="cash-payment-details">
-              <div className="form-floating mb-3">
-                <input 
-                  type="number" 
-                  className="form-control" 
-                  id="amount-paid" 
-                  placeholder="Masukkan jumlah uang"
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                />
-                <label htmlFor="amount-paid">Jumlah Bayar (Rp)</label>
-              </div>
-              <h5 className="d-flex justify-content-between">
+            <div className="mb-3">
+              <input type="number" className="form-control" placeholder="Jumlah Bayar" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} />
+              <div className="d-flex justify-content-between mt-2">
                 <span>Kembalian:</span>
-                <span id="change" className={`fw-bold ${change < 0 ? 'text-danger' : ''}`}>
-                  {change < 0 ? `(Kurang) ${formatCurrency(change)}` : formatCurrency(change)}
-                </span>
-              </h5>
+                <span className={`fw-bold ${change < 0 ? 'text-danger' : ''}`}>{formatCurrency(change)}</span>
+              </div>
             </div>
           )}
 
-          <hr />
-          <h5 className="d-flex justify-content-between">
+          <h5 className="d-flex justify-content-between border-top pt-2">
             <span>Total:</span>
-            <span id="total-price" className="fw-bold text-primary">{formatCurrency(totalPrice)}</span>
+            <span className="text-primary fw-bold">{formatCurrency(totalPrice)}</span>
           </h5>
-          <div className="d-grid mt-3">
-            <button 
-              className="btn btn-primary btn-lg fw-bold" 
-              id="btn-process-payment"
-              onClick={handleProcessPayment}
-            >
-              <i className="bi bi-check-circle-fill"></i> 
-              {isOffline ? ' Simpan Transaksi (Offline)' : ' Proses Pembayaran'}
-            </button>
-          </div>
+          <button className="btn btn-primary btn-lg w-100 fw-bold mt-3" onClick={handleProcessPayment}>
+            {isOffline ? 'Simpan (Offline)' : 'Proses Pembayaran'}
+          </button>
         </div>
       </aside>
 
-      {/* Modal QRIS */}
       <Modal show={showQrisModal} onHide={() => setShowQrisModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Pembayaran QRIS</Modal.Title>
-        </Modal.Header>
+        <Modal.Header closeButton><Modal.Title>Pembayaran QRIS</Modal.Title></Modal.Header>
         <Modal.Body className="text-center">
-          <p>Silakan scan QR code di bawah ini untuk membayar:</p>
-          <h3 className="fw-bold text-primary">{formatCurrency(qrisTotal)}</h3>
-          
-          {qrisImage && (
-            <img 
-              src={qrisImage} 
-              id="qris-image" 
-              className="img-fluid my-3" 
-              alt="QRIS Code" 
-              style={{ width: '250px', height: '250px' }} 
-            />
-          )}
-          
-          <p className="text-muted small">Ini adalah simulasi. QR code ini tidak terhubung dengan pembayaran nyata.</p>
-        </Modal.Body>
-        <Modal.Footer className="d-grid">
-          <Button 
-            variant="success"
-            id="btn-confirm-qris"
-            onClick={() => completeTransaction('QRIS')}
-          >
-            <i className="bi bi-check-circle-fill"></i> Konfirmasi Pembayaran (Simulasi)
-          </Button>
-          <Button variant="secondary" onClick={() => setShowQrisModal(false)} className="mt-2">
-            Batal
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Modal Sukses */}
-      <Modal show={showSuccessModal} onHide={handleCloseSuccessModal} centered>
-        <Modal.Body className="text-center p-4">
-          <i 
-            className="bi bi-check-circle-fill text-success" 
-            style={{ fontSize: '4rem', marginBottom: '1rem' }}
-          ></i>
-          <h3 className="fw-bold">Pembayaran Berhasil!</h3>
-          <p className="text-muted">Pembayaran Anda telah berhasil diproses.</p>
-          
-          <hr className="my-3" />
-          
-          <div className="text-start" style={{ fontSize: '0.9rem' }}>
-            <div className="d-flex justify-content-between mb-2">
-              <span className="text-muted">Metode Bayar:</span>
-              <span className="fw-bold">{successData.method}</span>
-            </div>
-            <div className="d-flex justify-content-between mb-2">
-              <span className="text-muted">Total Bayar:</span>
-              <span className="fw-bold">{formatCurrency(successData.total)}</span>
-            </div>
-            {successData.method === 'Cash' && (
-              <div className="d-flex justify-content-between">
-                <span className="text-muted">Kembalian:</span>
-                <span className="fw-bold">{formatCurrency(successData.change)}</span>
-              </div>
-            )}
-          </div>
-
-          <Button 
-            variant="primary" 
-            onClick={handleCloseSuccessModal} 
-            className="w-100 mt-4 fw-bold"
-          >
-            Tutup
-          </Button>
-        </Modal.Body>
-      </Modal>
-
-      {/* Modal Notes */}
-      <Modal show={showNotesModal} onHide={() => setShowNotesModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Tambah Catatan</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="form-group">
-            <label className="form-label">Catatan Pesanan:</label>
-            <textarea 
-              className="form-control" 
-              rows={3}
-              placeholder="Contoh: Tidak pakai cabe, ekstra kerupuk, dll."
-              value={tempNotes}
-              onChange={(e) => setTempNotes(e.target.value)}
-            />
-            <small className="text-muted">Catatan ini akan tampil di layar kasir (tidak disimpan ke database).</small>
-          </div>
+          <p>Scan QR di bawah:</p>
+          <h3 className="text-primary fw-bold">{formatCurrency(qrisTotal)}</h3>
+          {qrisImage && <img src={qrisImage} className="img-fluid my-3" style={{ maxWidth: '100%', maxHeight: '400px' }} />}
+          <p className="text-muted small">QR Code Asli Kedai Kakak Beradik Food.</p>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowNotesModal(false)}>
-            Batal
-          </Button>
-          <Button variant="primary" onClick={saveNotes}>
-            <i className="bi bi-check-circle"></i> Simpan Catatan
-          </Button>
+          <Button variant="secondary" onClick={() => setShowQrisModal(false)}>Batal</Button>
+          <Button variant="success" onClick={() => completeTransaction('QRIS')}>Konfirmasi (Manual)</Button>
         </Modal.Footer>
       </Modal>
 
+      <Modal show={showSuccessModal} onHide={handleCloseSuccessModal} centered>
+        <Modal.Body className="text-center p-4">
+          <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '4rem' }}></i>
+          <h3 className="fw-bold">Berhasil!</h3>
+          <p className="text-muted">Transaksi tersimpan.</p>
+          <div className="text-start bg-light p-3 rounded">
+             <div className="d-flex justify-content-between"><span>Metode:</span><strong>{successData.method}</strong></div>
+             <div className="d-flex justify-content-between"><span>Total:</span><strong>{formatCurrency(successData.total)}</strong></div>
+             {successData.method === 'Cash' && <div className="d-flex justify-content-between"><span>Kembalian:</span><strong>{formatCurrency(successData.change)}</strong></div>}
+          </div>
+          <Button className="w-100 mt-3" onClick={handleCloseSuccessModal}>Tutup</Button>
+        </Modal.Body>
+      </Modal>
+
+      <Modal show={showNotesModal} onHide={() => setShowNotesModal(false)} centered>
+        <Modal.Header closeButton><Modal.Title>Catatan</Modal.Title></Modal.Header>
+        <Modal.Body>
+          <textarea className="form-control" rows={3} placeholder="Contoh: Pedas, tanpa sayur..." value={tempNotes} onChange={(e) => setTempNotes(e.target.value)} />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowNotesModal(false)}>Batal</Button>
+          <Button variant="primary" onClick={saveNotes}>Simpan</Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
