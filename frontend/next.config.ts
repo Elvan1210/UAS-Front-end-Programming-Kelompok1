@@ -11,9 +11,9 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   // --- BAGIAN ANTI-KONFLIK DAN ANTI-KEPENTAL ---
   runtimeCaching: [
     {
-      // 1. STRATEGI UNTUK API KITA (http://localhost:5000)
+      // 1. STRATEGI UNTUK API KITA
       // JANGAN PERNAH DI-CACHE - INI YANG PALING PENTING!
-      urlPattern: /^http:\/\/localhost:5000\/.*/,
+      urlPattern: /^https:\/\/.*\.railway\.app\/api\/.*/, // Updated regex untuk Railway
       handler: "NetworkOnly",
     },
     {
@@ -45,7 +45,15 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Tambahkan config Next.js lainnya di sini jika ada
+  // === UPDATE PENTING: IZINKAN GAMBAR CLOUDINARY ===
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+    ],
+  },
 };
 
 // Bungkus export dengan PWA
