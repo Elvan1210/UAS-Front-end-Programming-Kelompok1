@@ -10,13 +10,17 @@ const transactionSchema = new mongoose.Schema({
       required: true
     },
     // SNAPSHOT DATA: 
-    // Nama & Harga disimpan ulang di sini.
-    // Tujuannya: Jika di masa depan nama/harga di database induk berubah,
-    // riwayat transaksi lama TETAP SESUAI dengan harga saat pembelian terjadi.
     name: String,
     price: Number,
     quantity: Number,
-    subtotal: Number // Hasil kali price * quantity
+    
+    // === BAGIAN PENTING: FIELD NOTES DITAMBAHKAN ===
+    notes: { 
+      type: String, 
+      default: '' // Default kosong jika tidak ada catatan
+    },
+    
+    subtotal: Number 
   }],
   
   // Total belanjaan (Grand Total)
@@ -37,8 +41,7 @@ const transactionSchema = new mongoose.Schema({
     required: true
   },
   
-  // Identitas Kasir (Audit Trail)
-  // Menyimpan nama/ID siapa yang memproses transaksi ini.
+  // Identitas Kasir
   cashier: {
     type: String,
     required: true
@@ -47,10 +50,10 @@ const transactionSchema = new mongoose.Schema({
   // Tanggal Transaksi
   transactionDate: {
     type: Date,
-    default: Date.now // Default ke waktu saat ini
+    default: Date.now 
   }
 }, {
-  timestamps: true // Mencatat createdAt & updatedAt secara otomatis
+  timestamps: true 
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);
