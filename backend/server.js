@@ -29,6 +29,7 @@ app.use(cors({
     "http://localhost:3000", // Untuk tes di laptop
     "https://uas-front-end-programming-kelompok1.vercel.app" // Link Vercel Produksi
   ],
+  origin: "*",
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE']
 }));
