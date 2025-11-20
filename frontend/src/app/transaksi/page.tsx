@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,7 +6,7 @@ import { Modal, Button } from "react-bootstrap";
 
 const API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api`;
 
-// Interface Transaksi (UPDATED: tambah notes di items)
+// Interface Transaksi
 interface Transaction {
   _id: string;
   createdAt: string;
@@ -16,7 +17,8 @@ interface Transaction {
     nama: string;
     harga: number;
     quantity: number;
-    notes?: string; // TAMBAHAN: Field notes
+    notes?: string; 
+    fotoUrl?: string; // Pastikan field ini ada di Interface
   }[];
 }
 
@@ -27,7 +29,6 @@ interface Product {
   gambar: string;
 }
 
-// Fungsi formatCurrency
 const formatCurrency = (number: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -36,7 +37,6 @@ const formatCurrency = (number: number) => {
   }).format(number);
 };
 
-// Fungsi formatDate
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleString('id-ID', {
     day: '2-digit',
@@ -49,12 +49,10 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// Fungsi formatTransactionId
 const formatTransactionId = (id: string) => {
   return `TRX${id.slice(-5).toUpperCase()}`;
 };
 
-// Komponen ContentHeader
 const ContentHeader = ({ title }: { title: string }) => {
   return (
     <header className="content-header">
@@ -63,7 +61,6 @@ const ContentHeader = ({ title }: { title: string }) => {
   );
 };
 
-// Komponen Utama Halaman
 export default function TransaksiPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
@@ -74,10 +71,11 @@ export default function TransaksiPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
-  // Fungsi fetchProducts
+  // Fetch Produk (Menu) untuk Backup Gambar
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:5000/menu');
+      // Gunakan URL API yang benar (bukan hardcode localhost)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/menu`);
       const data = await res.json();
       setProducts(data);
     } catch (error) {
@@ -85,7 +83,6 @@ export default function TransaksiPage() {
     }
   };
 
-  // Fungsi fetchTransactions
   const fetchTransactions = async () => {
     setLoading(true);
     try {
@@ -109,13 +106,11 @@ export default function TransaksiPage() {
     setLoading(false);
   };
 
-  // useEffect untuk fetch data awal
   useEffect(() => {
     fetchProducts();
     fetchTransactions();
   }, []);
 
-  // useEffect untuk filter tanggal
   useEffect(() => {
     if (!dateFilter) {
       setFilteredTransactions(transactions);
@@ -126,13 +121,26 @@ export default function TransaksiPage() {
     }
   }, [dateFilter, transactions]);
 
-  // Fungsi getProductImage
-  const getProductImage = (productId: string, productName: string) => {
-    const product = products.find(p => p._id === productId || p.nama === productName);
-    return product?.gambar || 'https://via.placeholder.com/50';
+  // === FUNGSI PINTAR GET IMAGE (PERBAIKAN UTAMA) ===
+  // 1. Cek apakah di histori transaksi sudah tersimpan fotoUrl?
+  // 2. Kalau tidak ada, cari gambar dari Menu yang aktif sekarang (products state).
+  // 3. Kalau tidak ada juga, pakai Placeholder.
+  const getProductImage = (item: any) => {
+    // Prioritas 1: Gambar Snapshot (tersimpan di histori)
+    if (item.fotoUrl && item.fotoUrl !== "") {
+        return item.fotoUrl;
+    }
+
+    // Prioritas 2: Cari dari Menu yang aktif (backup untuk transaksi lama)
+    const liveProduct = products.find(p => p._id === item.productId || p.nama === item.nama);
+    if (liveProduct && liveProduct.gambar) {
+        return liveProduct.gambar;
+    }
+
+    // Prioritas 3: Gambar Dummy
+    return 'https://via.placeholder.com/50';
   };
 
-  // Fungsi untuk buka/tutup modal
   const handleShowDetail = (tx: Transaction) => {
     setSelectedTx(tx);
     setShowDetailModal(true);
@@ -143,7 +151,6 @@ export default function TransaksiPage() {
     setSelectedTx(null);
   };
 
-  // Render komponen
   return (
     <>
       <ContentHeader title="Histori Transaksi" />
@@ -197,8 +204,9 @@ export default function TransaksiPage() {
                       <div className="d-flex flex-column gap-2" style={{ minWidth: '300px' }}>
                         {tx.items.map((item, idx) => (
                           <div key={idx} className="d-flex align-items-start gap-2">
+                            {/* PANGGIL FUNGSI GET IMAGE YANG BARU */}
                             <img 
-                              src={getProductImage(item.productId, item.nama)} 
+                              src={getProductImage(item)} 
                               alt={item.nama}
                               style={{ 
                                 width: '40px', 
@@ -216,7 +224,6 @@ export default function TransaksiPage() {
                                 {item.nama} 
                                 <small className="text-muted"> (x{item.quantity})</small>
                               </span>
-                              {/* TAMPILKAN NOTES DI TABEL */}
                               {item.notes && (
                                 <small className="text-info d-block mt-1">
                                   <i className="bi bi-sticky"></i> {item.notes}
@@ -243,7 +250,6 @@ export default function TransaksiPage() {
         </div>
       </div>
 
-      {/* Modal Detail Transaksi */}
       <Modal show={showDetailModal} onHide={handleCloseDetail} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
@@ -253,7 +259,6 @@ export default function TransaksiPage() {
         <Modal.Body className="p-4">
           {selectedTx && (
             <div>
-              {/* Bagian 1: Info Utama */}
               <div className="row mb-3">
                 <div className="col-md-6 mb-3">
                   <span className="text-muted d-block">Total Belanja:</span>
@@ -274,7 +279,6 @@ export default function TransaksiPage() {
                 </div>
               </div>
 
-              {/* Bagian 2: List Item */}
               <hr className="my-3" />
               <h5 className="mb-3 fw-bold">Item yang Dibeli ({selectedTx.items.length})</h5>
               
@@ -282,8 +286,9 @@ export default function TransaksiPage() {
                 {selectedTx.items.map((item, idx) => (
                   <li key={idx} className="list-group-item d-flex justify-content-between align-items-start px-0 py-3">
                     <div className="d-flex align-items-start flex-grow-1">
+                      {/* PANGGIL FUNGSI GET IMAGE YANG BARU (DI MODAL) */}
                       <img 
-                        src={getProductImage(item.productId, item.nama)} 
+                        src={getProductImage(item)} 
                         alt={item.nama}
                         style={{ 
                           width: '60px', 
@@ -300,7 +305,6 @@ export default function TransaksiPage() {
                           {formatCurrency(item.harga)} x {item.quantity}
                         </small>
                         
-                        {/* TAMPILKAN NOTES DI MODAL DETAIL */}
                         {item.notes && (
                           <div 
                             className="alert alert-info py-2 px-3 mb-0 d-inline-block" 
@@ -319,7 +323,6 @@ export default function TransaksiPage() {
                 ))}
               </ul>
 
-              {/* Bagian 3: Ringkasan dengan Notes Count */}
               <div className="mt-4 p-3 bg-light rounded">
                 <div className="d-flex justify-content-between mb-2">
                   <span className="text-muted">Total Item:</span>
