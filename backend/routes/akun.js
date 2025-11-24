@@ -148,5 +148,21 @@ router.post('/setup-first-admin', async (req, res) => {
   }
 });
 
+// ==========================================================
+// D. ENDPOINT LIHAT SEMUA AKUN (GET)
+// ==========================================================
+router.get('/', async (req, res) => {
+  try {
+    const users = await Akun.find();
+    res.status(200).json({
+      success: true,
+      total: users.length,
+      data: users
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error mengambil data akun', error: error.message });
+  }
+});
+
 
 module.exports = router;
