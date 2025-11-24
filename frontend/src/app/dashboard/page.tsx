@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PersonCircle } from 'react-bootstrap-icons';
 
 const ContentHeader = ({ title }: { title: string }) => {
   const [userEmail, setUserEmail] = useState("Loading...");
@@ -22,7 +23,7 @@ const ContentHeader = ({ title }: { title: string }) => {
       <div className="header-actions">
         <div className="user-profile dropdown">
           <a href="#" className="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="https://via.placeholder.com/40" alt="User" />
+            <PersonCircle size={32} className="me-2 text-secondary" />
             <span id="user-display-email">{userEmail}</span>
           </a>
           <ul className="dropdown-menu dropdown-menu-end">
