@@ -52,7 +52,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
             </Link>
           </li>
           <li className="nav-item">
-            <Link href="/menu/kelola" className={`nav-link ${pathname.startsWith('/menu') ? 'active' : ''}`} onClick={onClose}>
+            <Link href="/menu" className={`nav-link ${pathname.startsWith('/menu') ? 'active' : ''}`} onClick={onClose}>
               <i className="bi bi-box-seam-fill"></i> Manajemen Menu
             </Link>
           </li>
