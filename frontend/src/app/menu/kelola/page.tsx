@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/Context/AuthContext";
 
-// konfigurasi url api
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-// definisi tipe data menu
 interface Product {
   _id: string;
   name: string;
@@ -18,7 +16,6 @@ interface Product {
   image: string;
 }
 
-// format mata uang rupiah
 const formatCurrency = (number: number) => {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -28,15 +25,12 @@ const formatCurrency = (number: number) => {
 };
 
 export default function KelolaMenuPage() {
-  // inisialisasi state aplikasi
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // state untuk kontrol modal
   const [editModal, setEditModal] = useState<any>(null);
   const [deleteModal, setDeleteModal] = useState<any>(null);
   
-  // state untuk data yang sedang diolah
   const [currentProduct, setCurrentProduct] = useState<any | null>(null);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
@@ -45,7 +39,6 @@ export default function KelolaMenuPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  // memuat library bootstrap secara dinamis
   useEffect(() => {
     if (typeof window !== "undefined") {
       const loadBootstrap = async () => {
@@ -63,7 +56,6 @@ export default function KelolaMenuPage() {
     }
   }, []);
 
-  // mengambil data menu dari server
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,7 +79,6 @@ export default function KelolaMenuPage() {
     setLoading(false);
   }, []);
 
-  // cek otentikasi dan muat data
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -97,18 +88,15 @@ export default function KelolaMenuPage() {
     }
   }, [user, authLoading, router, fetchProducts]);
 
-  // filter menu berdasarkan pencarian
   const filteredProducts = products.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // logika persiapan hapus data
   const confirmDelete = (id: string) => {
     setProductToDelete(id);
     if(deleteModal) deleteModal.show();
   };
 
-  // eksekusi hapus data ke server
   const executeDelete = async () => {
     if (!productToDelete) return;
 
@@ -122,14 +110,12 @@ export default function KelolaMenuPage() {
     }
   };
 
-  // buka modal edit dengan data terpilih
   const openEditModal = (product: Product) => {
     setNewFileGambar(null);
     setCurrentProduct(product);
     if (editModal) editModal.show();
   };
 
-  // proses simpan perubahan menu
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProduct) return;
@@ -158,7 +144,6 @@ export default function KelolaMenuPage() {
     }
   };
 
-  // handle perubahan input pada form modal
   const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (currentProduct) {
       const { name, value, type } = e.target;
@@ -175,7 +160,6 @@ export default function KelolaMenuPage() {
     }
   };
 
-  // hapus gambar yang ada di state
   const removeExistingImage = () => {
     if (currentProduct) {
       setCurrentProduct({ ...currentProduct, image: "" });
@@ -183,157 +167,210 @@ export default function KelolaMenuPage() {
     }
   };
 
-  // tampilan loading saat verifikasi
   if (authLoading || !user) {
     return <div style={{ textAlign: 'center', paddingTop: '4rem' }}><p style={{ color: '#666' }}>Memverifikasi akses...</p></div>;
   }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#fff', paddingTop: '2rem', paddingBottom: '3rem' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
-        
-        {/* tombol kembali */}
-        <Link href="/menu" style={{ 
-            display: 'inline-flex',
-            alignItems: 'center',
-            textDecoration: 'none', 
-            color: '#1a1a1a',
-            fontSize: '0.95rem',
-            marginBottom: '2rem',
-            
-            padding: '0.6rem 1.2rem',
-            border: '1px solid #ced4da',
-            borderRadius: '8px',
-            backgroundColor: 'transparent',
-            fontWeight: '500',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => { 
-            e.currentTarget.style.backgroundColor = '#f1f3f5';
-            e.currentTarget.style.borderColor = '#adb5bd';
-          }}
-          onMouseLeave={(e) => { 
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.borderColor = '#ced4da';
-          }}
-        >
-           <div style={{
-             width: '26px',
-             height: '26px',
-             backgroundColor: '#495057',
-             borderRadius: '50%',
-             display: 'flex',
-             alignItems: 'center',
-             justifyContent: 'center',
-             marginRight: '0.8rem',
-             color: '#fff', 
-             fontSize: '0.9rem',
-             paddingBottom: '2px'
-           }}>
-             ←
-           </div>
-          Kembali
-        </Link>
-
-        {/* judul halaman */}
-        <div style={{ marginBottom: '2.5rem', marginTop: '1rem' }}>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: '700', letterSpacing: '1px', color: '#1a1a1a', marginBottom: '0.5rem' }}>
-            Kelola Menu
-          </h1>
-          <div style={{ width: '40px', height: '1px', backgroundColor: '#d4af37', marginBottom: '1rem' }}></div>
-          <p style={{ color: '#999', fontSize: '0.9rem', fontWeight: '300' }}>
-            Lihat, edit, dan kelola menu dari sistem
-          </p>
-        </div>
-
-        {/* kolom pencarian menu */}
-        <div style={{ marginBottom: '2rem' }}>
-          <input
-            type="text"
-            placeholder="Cari nama menu..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              maxWidth: '350px',
-              padding: '0.75rem 1rem',
-              border: '1px solid #ddd',
-              borderRadius: '2px',
-              fontSize: '0.9rem',
-              fontFamily: 'inherit'
+      <div className="container-fluid px-3 px-md-5">
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          
+          {/* Tombol Kembali */}
+          <Link href="/menu" style={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              textDecoration: 'none', 
+              color: '#1a1a1a',
+              fontSize: '0.95rem',
+              marginBottom: '2rem',
+              padding: '0.6rem 1.2rem',
+              border: '1px solid #ced4da',
+              borderRadius: '8px',
+              backgroundColor: 'transparent',
+              fontWeight: '500',
+              transition: 'all 0.3s ease'
             }}
-          />
-        </div>
-
-        {/* tabel daftar menu */}
-        <div style={{ backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#fafafa', borderBottom: '2px solid #e8e8e8' }}>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem', width: '80px' }}>ID</th>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Foto</th>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Nama Menu</th>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Kategori</th>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Harga</th>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Stok</th>
-                  <th style={{ padding: '1.2rem 1.5rem', textAlign: 'center', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#999' }}>Memuat data...</td></tr>
-                ) : filteredProducts.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#999', fontSize: '0.9rem' }}>{searchQuery ? `Menu "${searchQuery}" tidak ditemukan` : "Belum ada menu terdaftar"}</td></tr>
-                ) : (
-                  filteredProducts.map((product) => (
-                    <tr key={product._id} style={{ borderBottom: '1px solid #f0f0f0', transition: 'background-color 0.2s ease' }}>
-                      <td style={{ padding: '1.2rem 1.5rem', color: '#888', fontSize: '0.8rem', fontFamily: 'monospace' }}>0{product._id.slice(-5)}</td>
-                      <td style={{ padding: '1.2rem 1.5rem' }}>
-                        <img src={product.image || "https://via.placeholder.com/80x80?text=No+Img"} alt={product.name} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e8e8e8' }} />
-                      </td>
-                      <td style={{ padding: '1.2rem 1.5rem', fontWeight: '400', color: '#1a1a1a', fontSize: '0.95rem' }}>{product.name}</td>
-                      <td style={{ padding: '1.2rem 1.5rem' }}><span style={{ display: 'inline-block', backgroundColor: '#f5f5f5', color: '#666', padding: '0.35rem 0.8rem', borderRadius: '2px', fontSize: '0.8rem', fontWeight: '300' }}>{product.category}</span></td>
-                      <td style={{ padding: '1.2rem 1.5rem', fontWeight: '400', color: '#1a1a1a', fontSize: '0.95rem' }}>{formatCurrency(product.price)}</td>
-                      <td style={{ padding: '1.2rem 1.5rem' }}><span style={{ display: 'inline-block', backgroundColor: product.stock > 0 ? '#f0f0f0' : '#ffe6e6', color: product.stock > 0 ? '#666' : '#c00', padding: '0.35rem 0.8rem', borderRadius: '2px', fontSize: '0.9rem', fontWeight: '400' }}>{product.stock}</span></td>
-                      <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
-                        <button onClick={() => openEditModal(product)} style={{ backgroundColor: '#f5f5f5', color: '#1a1a1a', border: '1px solid #ddd', padding: '0.5rem 0.9rem', borderRadius: '2px', cursor: 'pointer', marginRight: '0.5rem', fontSize: '0.85rem', transition: 'all 0.3s ease' }}>Edit</button>
-                        <button onClick={() => confirmDelete(product._id)} style={{ backgroundColor: '#ffe6e6', color: '#c00', border: '1px solid #dcc', padding: '0.5rem 0.9rem', borderRadius: '2px', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.3s ease' }}>Hapus</button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.backgroundColor = '#f1f3f5';
+              e.currentTarget.style.borderColor = '#adb5bd';
+            }}
+            onMouseLeave={(e) => { 
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = '#ced4da';
+            }}
+          >
+             <div style={{
+                width: '26px',
+                height: '26px',
+                backgroundColor: '#495057',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: '0.8rem',
+                color: '#fff', 
+                fontSize: '0.9rem',
+                paddingBottom: '2px'
+             }}>
+               ←
+             </div>
+            Kembali
+          </Link>
+  
+          <div style={{ marginBottom: '2.5rem', marginTop: '1rem' }}>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: '700', letterSpacing: '1px', color: '#1a1a1a', marginBottom: '0.5rem' }}>
+              Kelola Menu
+            </h1>
+            <div style={{ width: '40px', height: '1px', backgroundColor: '#d4af37', marginBottom: '1rem' }}></div>
+            <p style={{ color: '#999', fontSize: '0.9rem', fontWeight: '300' }}>
+              Lihat, edit, dan kelola menu dari sistem
+            </p>
           </div>
+  
+          <div style={{ marginBottom: '2rem' }}>
+            <input
+              type="text"
+              placeholder="Cari nama menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                maxWidth: '350px',
+                padding: '0.75rem 1rem',
+                border: '1px solid #ddd',
+                borderRadius: '2px',
+                fontSize: '0.9rem',
+                fontFamily: 'inherit'
+              }}
+            />
+          </div>
+  
+          {/* === BAGIAN UTAMA: TABEL vs KARTU === */}
+          
+          {loading ? (
+             <div style={{ padding: '3rem', textAlign: 'center', color: '#999' }}>Memuat data...</div>
+          ) : filteredProducts.length === 0 ? (
+             <div style={{ padding: '3rem', textAlign: 'center', color: '#999', fontSize: '0.9rem' }}>{searchQuery ? `Menu "${searchQuery}" tidak ditemukan` : "Belum ada menu terdaftar"}</div>
+          ) : (
+            <>
+              {/* TAMPILAN DESKTOP (TABEL) - Hanya muncul di layar MD ke atas */}
+              <div className="d-none d-md-block" style={{ backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#fafafa', borderBottom: '2px solid #e8e8e8' }}>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem', width: '80px' }}>ID</th>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Foto</th>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Nama Menu</th>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Kategori</th>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Harga</th>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'left', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Stok</th>
+                        <th style={{ padding: '1.2rem 1.5rem', textAlign: 'center', fontWeight: '500', color: '#1a1a1a', fontSize: '0.85rem' }}>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {filteredProducts.map((product) => (
+                          <tr key={product._id} style={{ borderBottom: '1px solid #f0f0f0', transition: 'background-color 0.2s ease' }}>
+                            <td style={{ padding: '1.2rem 1.5rem', color: '#888', fontSize: '0.8rem', fontFamily: 'monospace' }}>0{product._id.slice(-5)}</td>
+                            <td style={{ padding: '1.2rem 1.5rem' }}>
+                              <img src={product.image || "https://via.placeholder.com/80x80?text=No+Img"} alt={product.name} style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e8e8e8' }} />
+                            </td>
+                            <td style={{ padding: '1.2rem 1.5rem', fontWeight: '400', color: '#1a1a1a', fontSize: '0.95rem' }}>{product.name}</td>
+                            <td style={{ padding: '1.2rem 1.5rem' }}><span style={{ display: 'inline-block', backgroundColor: '#f5f5f5', color: '#666', padding: '0.35rem 0.8rem', borderRadius: '2px', fontSize: '0.8rem', fontWeight: '300' }}>{product.category}</span></td>
+                            <td style={{ padding: '1.2rem 1.5rem', fontWeight: '400', color: '#1a1a1a', fontSize: '0.95rem' }}>{formatCurrency(product.price)}</td>
+                            <td style={{ padding: '1.2rem 1.5rem' }}><span style={{ display: 'inline-block', backgroundColor: product.stock > 0 ? '#f0f0f0' : '#ffe6e6', color: product.stock > 0 ? '#666' : '#c00', padding: '0.35rem 0.8rem', borderRadius: '2px', fontSize: '0.9rem', fontWeight: '400' }}>{product.stock}</span></td>
+                            <td style={{ padding: '1.2rem 1.5rem', textAlign: 'center' }}>
+                              <button onClick={() => openEditModal(product)} style={{ backgroundColor: '#f5f5f5', color: '#1a1a1a', border: '1px solid #ddd', padding: '0.5rem 0.9rem', borderRadius: '2px', cursor: 'pointer', marginRight: '0.5rem', fontSize: '0.85rem', transition: 'all 0.3s ease' }}>Edit</button>
+                              <button onClick={() => confirmDelete(product._id)} style={{ backgroundColor: '#ffe6e6', color: '#c00', border: '1px solid #dcc', padding: '0.5rem 0.9rem', borderRadius: '2px', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.3s ease' }}>Hapus</button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+  
+              {/* TAMPILAN MOBILE (CARD LIST) - Hanya muncul di layar kecil (dibawah MD) */}
+              <div className="d-md-none">
+                {filteredProducts.map((product) => (
+                  <div key={product._id} style={{ backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '8px', padding: '1.5rem', marginBottom: '1rem', boxShadow: '0 2px 5px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                      <img 
+                        src={product.image || "https://via.placeholder.com/80x80?text=No+Img"} 
+                        alt={product.name} 
+                        style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #f0f0f0' }} 
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.8rem', color: '#888', fontFamily: 'monospace', marginBottom: '0.2rem' }}>#{product._id.slice(-5)}</div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1a1a1a', margin: '0 0 0.3rem 0' }}>{product.name}</h3>
+                        <span style={{ display: 'inline-block', backgroundColor: '#f5f5f5', color: '#666', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem' }}>{product.category}</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f5f5f5', borderBottom: '1px solid #f5f5f5', padding: '0.8rem 0', marginBottom: '1rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '0.2rem' }}>Harga</div>
+                        <div style={{ fontWeight: '500', color: '#1a1a1a' }}>{formatCurrency(product.price)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '0.2rem' }}>Stok</div>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          color: product.stock > 0 ? '#1a1a1a' : '#c00', 
+                          fontWeight: '500'
+                        }}>
+                          {product.stock}
+                        </span>
+                      </div>
+                    </div>
+  
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                      <button 
+                        onClick={() => openEditModal(product)} 
+                        style={{ backgroundColor: '#f8f9fa', color: '#1a1a1a', border: '1px solid #ddd', padding: '0.7rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', textAlign: 'center' }}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => confirmDelete(product._id)} 
+                        style={{ backgroundColor: '#fff5f5', color: '#c00', border: '1px solid #fcc', padding: '0.7rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', textAlign: 'center' }}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+  
         </div>
       </div>
-
-      {/* modal edit menu */}
+  
+      {/* --- MODAL EDIT MENU (RESPONSIF) --- */}
       <div className="modal fade" id="editProductModal" tabIndex={-1}>
-        <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '900px' }}>
+        <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '900px', width: '95%' }}>
           <div className="modal-content" style={{ border: 'none', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
              <form onSubmit={handleEditSubmit}>
                 
-                {/* bagian header modal */}
                 <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h5 style={{ margin: '0', fontSize: '1.3rem', fontWeight: '600', color: '#1a1a1a' }}>Edit Menu</h5>
                     <button type="button" onClick={() => editModal?.hide()} style={{ border: 'none', background: 'transparent', fontSize: '1.5rem', cursor:'pointer', color: '#999' }}>×</button>
                 </div>
-
-                {/* bagian isi modal dua kolom */}
+  
                 <div style={{ padding: '2rem' }}>
                     {currentProduct && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2.5rem' }}>
+                        /* Menggunakan Bootstrap Grid agar responsif */
+                        <div className="row g-4">
                              
-                             {/* kolom kiri untuk foto */}
-                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: '500', color: '#1a1a1a', fontSize: '0.9rem' }}>Foto Menu</label>
+                             {/* KOLOM KIRI: FOTO */}
+                             <div className="col-lg-4 text-center text-lg-start">
+                                <label style={{ display: 'block', marginBottom: '0.8rem', fontWeight: '500', color: '#1a1a1a', fontSize: '0.9rem', textAlign: 'left' }}>Foto Menu</label>
                                 <div style={{ 
                                     border: '1px solid #eee', 
                                     padding: '1rem', 
                                     borderRadius: '8px', 
-                                    textAlign: 'center',
                                     backgroundColor: '#fafafa'
                                 }}>
                                     {currentProduct.image ? (
@@ -370,14 +407,14 @@ export default function KelolaMenuPage() {
                                         </div>
                                     )}
                                 </div>
-                                <div style={{ marginTop: '1rem' }}>
+                                <div style={{ marginTop: '1rem', textAlign: 'left' }}>
                                     <label style={{ fontSize: '0.85rem', color: '#666', display: 'block', marginBottom: '0.4rem' }}>Ganti/Upload Baru:</label>
                                     <input type="file" className="form-control" name="file" onChange={handleModalInputChange} accept="image/*" style={{ fontSize: '0.85rem' }} />
                                 </div>
                              </div>
-
-                             {/* kolom kanan untuk data menu */}
-                             <div>
+  
+                             {/* KOLOM KANAN: DATA MENU */}
+                             <div className="col-lg-8">
                                 <div style={{ marginBottom: '1.2rem' }}>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Nama Menu</label>
                                     <input type="text" className="form-control" name="name" value={currentProduct.name} onChange={handleModalInputChange} required style={{ padding: '0.7rem', fontSize: '0.95rem' }} />
@@ -385,17 +422,17 @@ export default function KelolaMenuPage() {
                                 <div style={{ marginBottom: '1.2rem' }}>
                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Kategori</label>
                                     <select className="form-select" name="category" value={currentProduct.category} onChange={handleModalInputChange} style={{ padding: '0.7rem', fontSize: '0.95rem', cursor: 'pointer' }}>
-                                            <option value="Makanan">Makanan</option>
-                                            <option value="Minuman">Minuman</option>
-                                            <option value="Cemilan">Cemilan</option>
+                                        <option value="Makanan">Makanan</option>
+                                        <option value="Minuman">Minuman</option>
+                                        <option value="Cemilan">Cemilan</option>
                                     </select>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div style={{ marginBottom: '1.2rem' }}>
+                                <div className="row">
+                                    <div className="col-6" style={{ marginBottom: '1.2rem' }}>
                                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Harga (Rp)</label>
                                         <input type="number" className="form-control" name="price" value={currentProduct.price} onChange={handleModalInputChange} required style={{ padding: '0.7rem', fontSize: '0.95rem' }} />
                                     </div>
-                                    <div style={{ marginBottom: '1.2rem' }}>
+                                    <div className="col-6" style={{ marginBottom: '1.2rem' }}>
                                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: '500' }}>Stok</label>
                                         <input type="number" className="form-control" name="stock" value={currentProduct.stock} onChange={handleModalInputChange} required style={{ padding: '0.7rem', fontSize: '0.95rem' }} />
                                     </div>
@@ -404,8 +441,7 @@ export default function KelolaMenuPage() {
                         </div>
                     )}
                 </div>
-
-                {/* bagian tombol aksi modal */}
+  
                 <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', gap: '1rem', backgroundColor: '#fafafa' }}>
                     <button type="button" onClick={() => editModal?.hide()} style={{ padding: '0.6rem 1.5rem', border: '1px solid #ddd', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}>Batal</button>
                     <button type="submit" style={{ padding: '0.6rem 1.5rem', border: 'none', background: '#1a1a1a', color: '#fff', borderRadius: '4px', cursor: 'pointer' }}>Simpan Perubahan</button>
@@ -414,8 +450,8 @@ export default function KelolaMenuPage() {
           </div>
         </div>
       </div>
-
-      {/* modal konfirmasi hapus menu */}
+  
+      {/* --- MODAL CONFIRM DELETE --- */}
       <div className="modal fade" id="deleteConfirmModal" tabIndex={-1}>
         <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '400px' }}>
           <div className="modal-content" style={{ border: 'none', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
@@ -431,7 +467,7 @@ export default function KelolaMenuPage() {
           </div>
         </div>
       </div>
-
+  
     </div>
   );
 }
