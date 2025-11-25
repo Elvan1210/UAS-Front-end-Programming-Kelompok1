@@ -164,5 +164,24 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ==========================================================
+// E. ENDPOINT LIHAT KHUSUS ADMIN (GET)
+// ==========================================================
+// Endpoint ini mengambil semua user yang role-nya 'admin'
+router.get('/admins', protect, admin, async (req, res) => {
+  try {
+    // Cari di database: yang role-nya "admin"
+    // .select('-password') gunanya agar password hash tidak ikut terkirim (keamanan)
+    const admins = await Akun.find({ role: 'admin' }).select('-password');
 
+    res.status(200).json({
+      success: true,
+      count: admins.length,
+      data: admins
+    });
+  } catch (error) {
+    console.error('Error ambil data admin:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan server', error: error.message });
+  }
+});
 module.exports = router;
