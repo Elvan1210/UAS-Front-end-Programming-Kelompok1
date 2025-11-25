@@ -1,69 +1,118 @@
 :root {
-    --primary-color: #6C5CE7;
-    --secondary-color: #A29BFE;
-    --dark-color: #2D3436;
-    --light-color: #F8F9FA;
-    --text-color: #555;
-    --border-color: #E0E0E0;
+    /* palet warna aplikasi baru */
+    --color-neon: #E03348;
+    --color-blue: #1C46F5;
+    --color-black: #131313;
+    --color-purple: #7B68EE;
+    
+    /* override variabel bootstrap */
+    --bs-body-bg: #FFFFFF;
     --card-bg: #FFFFFF;
+    --border-color: #EAEAEA;
+    --text-color: #333;
 }
 
 body {
-    background-color: var(--light-color);
+    background-color: #FFFFFF !important;
     color: var(--text-color);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* gaya sidebar navigasi */
 .sidebar {
     width: 260px;
     height: 100vh;
     position: fixed;
     top: 0;
     left: 0;
-    background-color: var(--dark-color);
+    background-color: #FFFFFF;
+    border-right: 1px solid var(--border-color);
     padding-top: 1.5rem;
     padding-left: 1rem;
     padding-right: 1rem;
     z-index: 1000;
+    transition: all 0.3s ease-in-out;
 }
 
 .sidebar .navbar-brand {
     font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--card-bg) !important;
+    font-weight: 800;
+    color: var(--color-black) !important;
+    letter-spacing: -0.5px;
 }
 
 .sidebar .nav-link {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
-    color: #B2BEC3;
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
+    color: #888;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
     margin-bottom: 0.5rem;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
 }
 
 .sidebar .nav-link i {
     margin-right: 0.75rem;
     font-size: 1.2rem;
-    width: 20px;
 }
 
 .sidebar .nav-link:hover {
-    background-color: #4A5052;
-    color: var(--card-bg);
+    background-color: #F8F9FA;
+    color: #000;
 }
 
-.sidebar .nav-link.active {
-    background-color: var(--primary-color);
-    color: var(--card-bg);
+/* status aktif menu sidebar */
+
+/* gaya aktif dashboard merah */
+.nav-link.active-dashboard {
+    background-color: var(--color-neon) !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(224, 51, 72, 0.4);
+}
+
+/* gaya aktif kasir biru */
+.nav-link.active-kasir {
+    background-color: var(--color-blue) !important;
+    color: #fff !important;
     font-weight: 600;
+    box-shadow: 0 4px 15px rgba(28, 70, 245, 0.3);
 }
 
+/* gaya aktif menu hitam */
+.nav-link.active-menu {
+    background-color: var(--color-black) !important;
+    color: #fff !important;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(19, 19, 19, 0.3);
+}
+
+/* gaya aktif transaksi ungu */
+.nav-link.active-transaksi {
+    background-color: var(--color-purple) !important;
+    color: #fff !important;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(123, 104, 238, 0.3);
+}
+
+/* gaya aktif admin hijau pastel */
+.nav-link.active-admin {
+    background-color: #F0FDF4 !important; 
+    color: #14532d !important;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(20, 83, 45, 0.15);
+    border: none;
+}
+
+/* konten utama dan layout */
 .main-content {
     margin-left: 260px;
     padding: 2rem;
     width: calc(100% - 260px);
+    background-color: #FFFFFF;
+    min-height: 100vh;
 }
 
 .content-header {
@@ -74,453 +123,42 @@ body {
 }
 
 .content-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--dark-color);
+    font-weight: 800;
+    color: var(--color-black);
+    letter-spacing: -0.5px;
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
+/* gaya kartu */
+.card, .stat-card, .list-card, .content-card {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.03);
 }
 
-.header-actions .form-control {
-    width: 300px;
-}
-
-.user-profile {
-    display: flex;
-    align-items: center;
-    margin-left: 1.5rem;
-}
-
-.user-profile img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 0.75rem;
-}
-
-.user-profile span {
-    font-weight: 600;
-    color: var(--dark-color);
-}
-
-.stat-card {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.stat-card .card-body {
-    display: flex;
-    align-items: center;
-}
-
-.stat-card .icon-circle {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    margin-right: 1rem;
-}
-
-.stat-card .icon-circle.bg-primary-soft { background-color: #E8E6FC; color: var(--primary-color); }
-.stat-card .icon-circle.bg-success-soft { background-color: #E6F7F0; color: #1ABC9C; }
-.stat-card .icon-circle.bg-warning-soft { background-color: #FFF8E1; color: #F39C12; }
-.stat-card .icon-circle.bg-info-soft { background-color: #E0F7FA; color: #00BCD4; }
-
-.stat-card .card-title {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #6C757D;
-    margin-bottom: 0.25rem;
-}
-.stat-card .card-text {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--dark-color);
-}
-
-.list-card {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.pos-container {
-    display: flex;
-    flex-wrap: wrap;
-    height: calc(100vh - 4rem); 
-}
-
-.product-pane {
-    flex: 3; 
-    overflow-y: auto;
-    padding-right: 1.5rem;
-    height: 100%;
-}
-
-.cart-pane {
-    flex: 2; 
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-#category-tabs .btn {
-    font-weight: 600;
-    border-radius: 20px;
-}
-#category-tabs .btn.active {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-}
-
-.product-item {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 12px !important;
-}
-.product-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-}
-
-.cart-pane #cart-items {
-    flex-grow: 1;
-    overflow-y: auto;
-}
-
-.cart-summary {
-    border-top: 1px dashed var(--border-color);
-    padding-top: 1rem;
-    margin-top: 1rem;
-}
-
-.content-card {
-    background-color: var(--card-bg);
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    padding: 2rem;
-}
-
-.table {
-    border-color: var(--border-color);
-}
-
-.login-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100vw;
-    height: 100vh;
-    background-color: var(--light-color);
-}
-
-html, body {
-    padding: 0;
-    margin: 0;
-}
-
-/* --- CSS KUSTOM KASIR UNTUK MEMPERBAIKI TINGGI KARTU --- */
-
-.kasir-img-container {
-    /* Wadah dengan tinggi pasti */
-    height: 150px !important; 
-    width: 100%;
-    overflow: hidden !important;
-    border-top-left-radius: 0.25rem !important; 
-    border-top-right-radius: 0.25rem !important;
-}
-
-.kasir-img-container img {
-    /* Memaksa gambar untuk mengisi wadah tanpa distorsi */
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important; 
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* ===== RESPONSIVE LAYOUT (MOBILE) ===== */
-
-/* Tombol Burger (Garis 3) - Default disembunyikan di Desktop */
+/* pengaturan responsif mobile */
 .mobile-toggle-btn {
-  display: none; /* Hilang di laptop */
+  display: none;
   font-size: 1.5rem;
   background: none;
   border: none;
-  color: var(--text-color);
+  color: var(--color-black);
   cursor: pointer;
   padding: 0.5rem;
-  margin-right: 1rem;
 }
 
-/* Overlay Gelap saat sidebar muncul di HP */
 .sidebar-overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 999; /* Di bawah sidebar, di atas konten */
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background-color: rgba(0, 0, 0, 0.2);
+  z-index: 999;
 }
 
-/* --- MEDIA QUERY: KETIKA LAYAR KECIL (< 992px) --- */
 @media (max-width: 992px) {
-  
-  /* 1. Sidebar sembunyi ke kiri */
-  .sidebar {
-    left: -260px; /* Geser ke luar layar */
-    transition: all 0.3s ease-in-out; /* Animasi halus */
-  }
-
-  /* 2. Sidebar Muncul jika ada class 'active' */
-  .sidebar.active {
-    left: 0; /* Balik ke posisi semula */
-    box-shadow: 5px 0 15px rgba(0,0,0,0.3);
-  }
-
-  /* 3. Main Content jadi lebar penuh */
-  .main-content {
-    margin-left: 0;
-    width: 100%;
-    padding: 1.5rem; /* Kurangi padding biar ga sempit */
-  }
-
-  /* 4. Munculkan Tombol Burger */
-  .mobile-toggle-btn {
-    display: block;
-  }
-
-  /* 5. Overlay aktif jika sidebar aktif */
-  .sidebar-overlay.active {
-    display: block;
-  }
+  .sidebar { left: -260px; }
+  .sidebar.active { left: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.1); }
+  .main-content { margin-left: 0; width: 100%; padding: 1.5rem; }
+  .mobile-toggle-btn { display: block; }
+  .sidebar-overlay.active { display: block; }
 }
-
-/* ===== RESPONSIF HALAMAN KASIR (MOBILE) ===== */
-@media (max-width: 992px) {
-  
-  /* 1. UBAH KONTAINER JADI VERTIKAL */
-  .pos-container {
-    flex-direction: column; /* Tumpuk atas-bawah */
-    height: auto !important; /* Matikan tinggi fix 100vh */
-    overflow: visible !important; /* Izinkan scroll halaman */
-    padding-bottom: 80px; /* Ruang kosong di bawah */
-  }
-
-  /* 2. ATUR BAGIAN MENU (DI ATAS) */
-  .product-pane {
-    width: 100%; /* Lebar penuh */
-    height: auto !important; /* Tinggi menyesuaikan isi */
-    overflow-y: visible !important;
-    padding-right: 0; /* Hapus jarak kanan */
-    margin-bottom: 2rem; /* Jarak pemisah dengan keranjang */
-  }
-
-  /* 3. ATUR BAGIAN KERANJANG (DI BAWAH) */
-  .cart-pane {
-    width: 100%; /* Lebar penuh */
-    height: auto !important;
-    border-left: none; /* Hapus garis pemisah kiri */
-    border-top: 1px solid var(--border-color); /* Ganti jadi garis atas */
-    margin-top: 1rem;
-  }
-
-  /* Opsional: Sembunyikan scrollbar menu kategori di HP biar rapi */
-  #category-tabs {
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 10px;
-  }
-}
-
-/* ===== UBAH TABEL JADI KARTU (MODERN MOBILE VIEW) ===== */
-@media (max-width: 992px) {
-  
-  /* 1. Matikan struktur tabel biasa */
-  .table, .table tbody, .table tr, .table td {
-    display: block;
-    width: 100%;
-  }
-
-  /* 2. Sembunyikan Header (Judul Kolom) karena sudah tidak relevan */
-  .table thead {
-    display: none;
-  }
-
-  /* 3. Ubah Baris (TR) menjadi Kartu */
-  .table tbody tr {
-    background-color: var(--card-bg);
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 16px; /* Sudut lebih bulat */
-    padding: 1.5rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2); /* Bayangan biar timbul */
-    text-align: center; /* Rata tengah semua isi */
-  }
-
-  /* 4. Reset border pada setiap sel */
-  .table tbody td {
-    border: none !important;
-    padding: 0.5rem 0;
-  }
-
-  /* --- MODIFIKASI PER KOLOM (Berdasarkan Urutan) --- */
-
-  /* Kolom 1: Foto */
-  .table tbody td:nth-child(1) {
-    margin-bottom: 0.5rem;
-  }
-  .table tbody td:nth-child(1) img {
-    width: 100px !important;
-    height: 100px !important;
-    border-radius: 50%; /* Foto jadi bulat */
-    object-fit: cover;
-    border: 3px solid var(--primary-color); /* Ring warna tema */
-  }
-
-  /* Kolom 2: ID (Sembunyikan labelnya, buat kecil) */
-  .table tbody td:nth-child(2) {
-    font-size: 0.8rem;
-    color: #888;
-    margin-bottom: 0.5rem;
-  }
-  .table tbody td:nth-child(2)::before {
-    content: "ID: "; /* Tambah label otomatis */
-  }
-
-  /* Kolom 3: Nama Menu (Judul Utama) */
-  .table tbody td:nth-child(3) {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: var(--text-color);
-    margin-bottom: 0.5rem;
-  }
-
-  /* Kolom 4: Kategori (Badge) */
-  .table tbody td:nth-child(4) {
-    margin-bottom: 1.5rem;
-  }
-
-  /* Kolom 5 (Harga) & 6 (Stok) -> Buat Grid Berdampingan */
-  .table tbody td:nth-child(5),
-  .table tbody td:nth-child(6) {
-    display: inline-block;
-    width: 48%; /* Setengah lebar */
-    background-color: var(--light-color); /* Background lebih gelap dikit */
-    padding: 10px;
-    border-radius: 10px;
-    margin: 0 1% 10px 1%;
-    vertical-align: top;
-  }
-  
-  /* Tambahkan Label "Harga" dan "Stok" secara otomatis pakai CSS */
-  .table tbody td:nth-child(5)::before { 
-    content: "Harga"; display: block; font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
-  }
-  .table tbody td:nth-child(5) { font-weight: bold; color: var(--primary-color); font-size: 1.1rem; }
-
-  .table tbody td:nth-child(6)::before { 
-    content: "Stok"; display: block; font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
-  }
-  .table tbody td:nth-child(6) { font-weight: bold; font-size: 1.1rem; }
-
-  /* Kolom 7: Tombol Aksi */
-  .table tbody td:nth-child(7) {
-    margin-top: 1rem;
-    display: flex;
-    gap: 10px;
-  }
-  .table tbody td:nth-child(7) .btn {
-    flex: 1; /* Tombol memenuhi lebar */
-    padding: 10px;
-    border-radius: 8px;
-  }
-}
-
-/* ===== KHUSUS TABEL TRANSAKSI (MOBILE FIX) ===== */
-@media (max-width: 992px) {
-
-  /* Target tabel yang punya class 'transaction-table' */
-  
-  /* 1. Reset Baris agar Rata Kiri */
-  .transaction-table.table tbody tr {
-    text-align: left !important; /* Paksa rata kiri */
-    padding-bottom: 1rem;
-  }
-
-  /* 2. Header Kartu (ID & Tanggal) */
-  .transaction-table.table tbody td:nth-child(1) {
-    /* ... style header sebelumnya ... */
-    text-align: center !important;
-  }
-  .transaction-table.table tbody td:nth-child(2) {
-    /* ... style tanggal sebelumnya ... */
-    text-align: center !important;
-  }
-  .transaction-table.table tbody td:nth-child(3),
-  .transaction-table.table tbody td:nth-child(4) {
-     text-align: center !important;
-  }
-
-  /* --- BAGIAN PENTING: PERBAIKAN LIST ITEM & TOMBOL --- */
-
-  /* 3. ITEM LIST (KOLOM 5) - Hancurkan Kotak "HARGA" */
-  .transaction-table.table tbody td:nth-child(5) {
-    display: block !important;
-    width: 100% !important;       /* Lebar penuh */
-    background: none !important;  /* Hapus background abu-abu */
-    background-color: transparent !important;
-    margin: 0 !important;
-    padding: 10px 15px !important;
-    text-align: left !important;  /* Rata kiri biar list rapi */
-    border-radius: 0 !important;
-    position: static !important;  /* Reset posisi */
-  }
-
-  /* HAPUS TULISAN "HARGA" */
-  .transaction-table.table tbody td:nth-child(5)::before {
-    content: none !important;     /* Hapus teks 'HARGA' */
-    display: none !important;
-  }
-
-  /* 4. TOMBOL DETAIL (KOLOM 6) - Hancurkan Kotak "STOK" */
-  .transaction-table.table tbody td:nth-child(6) {
-    display: block !important;
-    width: 100% !important;
-    background: none !important;
-    background-color: transparent !important;
-    margin-top: 10px !important;
-    padding: 0 15px 15px 15px !important;
-    border-radius: 0 !important;
-  }
-
-  /* HAPUS TULISAN "STOK" */
-  .transaction-table.table tbody td:nth-child(6)::before {
-    content: none !important;     /* Hapus teks 'STOK' */
-    display: none !important;
-  }
-
-  /* Bikin tombolnya lebar penuh biar enak dipencet */
-  .transaction-table.table tbody td:nth-child(6) .btn {
-    width: 100% !important;
-    display: block;
-  }
-}
-/* --- AKHIR CSS KUSTOM --- */
