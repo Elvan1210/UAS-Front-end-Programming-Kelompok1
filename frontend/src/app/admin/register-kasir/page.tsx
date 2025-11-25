@@ -1,122 +1,40 @@
 "use client";
 
+// impor dependensi
 import { useState, useEffect } from 'react';
-// import { useRouter } from 'next/navigation'; // Dihapus untuk pratinjau
-// import { useAuth } from '@/Context/AuthContext'; // Dihapus untuk pratinjau
+import { useAuth } from '@/Context/AuthContext';
+import { useRouter } from 'next/navigation';
 
-// Asumsi URL Backend
+// konfigurasi url api
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/akun`;
 
-// ==========================================================
-// KOMPONEN STYLE CSS (BARU & TER-ISOLASI)
-// ==========================================================
-// Style ini HANYA untuk form registrasi dan tidak akan
-// mengganggu layout dashboard Anda.
-const ScopedFormStyles = () => (
-  <style>{`
-    /* Wrapper (kotak putih) untuk form */
-    .regFormContainer {
-      background-color: white;
-      padding: 2.5rem; /* 40px */
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      max-width: 600px; /* Batas lebar form */
-      margin: 0 auto; /* Tengahkan form di area konten */
-    }
-
-    .regFormTitle {
-      font-size: 1.8rem;
-      font-weight: 600;
-      color: #333;
-      margin: 0;
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .regErrorAlert {
-      background-color: #ffebee;
-      color: #c62828;
-      padding: 1rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .regSuccessAlert {
-      background-color: #e8f5e9;
-      color: #2e7d32;
-      padding: 1rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .regInputGroup {
-      margin-bottom: 1.5rem;
-    }
-
-    .regInputGroup label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #555;
-      margin-bottom: 0.5rem;
-    }
-
-    .regInputField {
-      width: 100%;
-      padding: 0.9rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-      transition: border-color 0.2s ease;
-    }
-
-    .regInputField:focus {
-      outline: none;
-      border-color: #3f51b5;
-      box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
-    }
-
-    .regSubmitButton {
-      width: 100%;
-      padding: 0.9rem;
-      font-size: 1rem;
-      font-weight: 600;
-      color: white;
-      background-color: #3f51b5;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
-
-    .regSubmitButton:hover {
-      background-color: #303f9f;
-    }
-
-    .regSubmitButton:disabled {
-      background-color: #9fa8da;
-      cursor: not-allowed;
-    }
-  `}</style>
-);
-
-
-// ==========================================================
-// KOMPONEN FORM REGISTER (Style Baru)
-// ==========================================================
-const RegisterKasirForm = () => {
+// komponen halaman registrasi kasir
+export default function RegisterKasirPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // state untuk visibilitas password
+  const [showPassword, setShowPassword] = useState(false);
 
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // cek otentikasi admin
+  useEffect(() => {
+    if (!authLoading) {
+        if (!user) {
+            router.push('/login');
+        } else if (user.role !== 'admin') {
+            router.push('/dashboard');
+        }
+    }
+  }, [user, authLoading, router]);
+
+  // fungsi menangani proses registrasi
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -153,142 +71,144 @@ const RegisterKasirForm = () => {
         throw new Error(data.message || 'Gagal mendaftar');
       }
 
-      setSuccess(`Registrasi kasir (${email}) berhasil!`);
+      setSuccess(`Berhasil mendaftarkan kasir baru: ${email}`);
       setEmail('');
       setPassword('');
       setConfirmPassword('');
-
     } catch (error: any) {
       setLoading(false);
       setError(error.message);
     }
   };
 
+  if (authLoading) return null;
+
+  // render form registrasi
   return (
-    // Menggunakan class .regFormContainer baru
-    <div className="regFormContainer">
-      <h2 className="regFormTitle">
-        Registrasi Akun Kasir
-      </h2>
-
-      {error && (
-        <div className="regErrorAlert">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="regSuccessAlert">
-          {success}
-        </div>
-      )}
-
-      <form id="register-form" onSubmit={handleRegister}>
-        <div className="regInputGroup">
-          <label htmlFor="email">Email Kasir Baru</label>
-          <input
-            type="email"
-            className="regInputField"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="contoh@email.com"
-          />
-        </div>
-        
-        <div className="regInputGroup">
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            className="regInputField"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Minimal 6 karakter"
-          />
-        </div>
-
-        <div className="regInputGroup">
-          <label htmlFor="confirm-password">Konfirmasi Password</label>
-          <input
-            type="password"
-            className="regInputField"
-            id="confirm-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            placeholder="Ulangi password"
-          />
-        </div>
-
-        <div style={{ marginTop: '1.5rem' }}>
-          <button
-            type="submit"
-            className="regSubmitButton"
-            disabled={loading}
-          >
-            {loading ? "Mendaftarkan..." : "Daftarkan Akun Kasir"}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-
-// ==========================================================
-// KOMPONEN UTAMA HALAMAN (Style Diperbaiki)
-// ==========================================================
-export default function RegisterKasirPage() {
-  // const { user, loading } = useAuth(); // Logika Auth dinonaktifkan untuk pratinjau
-  // const router = useRouter(); // Logika Router dinonaktifkan untuk pratinjau
-
-  // "PENJAGA" ADMIN (Logika tetap sama)
-  /*
-  useEffect(() => {
-    if (loading) return; 
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    if (user.role !== 'admin') {
-      console.error("Akses ditolak. Hanya admin yang boleh mendaftarkan kasir.");
-      router.push('/dashboard');
-    }
-  }, [user, loading, router]);
-  */
-
-  // Tampilan Loading atau "Forbidden" (Disederhanakan)
-  // Wrapper layout lama dihapus
-  /*
-  // Logika loading dinonaktifkan untuk pratinjau
-  if (loading || !user) {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center' }}>
-        <h3>Mengecek otentikasi...</h3>
-      </div>
-    );
-  }
-  
-  if (user.role !== 'admin') {
-     return (
-      <div style={{ padding: '3rem', textAlign: 'center' }}>
-        <h3>Akses Ditolak.</h3>
-      </div>
-    );
-  }
-  */
-
-  // Tampilkan halaman HANYA JIKA ADMIN
-  // Wrapper .formPanel dihapus, diganti padding sederhana
-  return (
-    // Beri padding agar form tidak menempel di tepi
-    <div style={{ padding: '2rem' }}>
-      {/* Menyuntikkan CSS yang ter-isolasi */}
-      <ScopedFormStyles /> 
+    <div className="container-fluid py-5 d-flex align-items-center justify-content-center" style={{ minHeight: '85vh', backgroundColor: '#fff' }}>
       
-      <RegisterKasirForm />
+      <div className="row w-100 justify-content-center">
+        <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
+            
+            <div className="card border-0 shadow-lg p-4 p-md-5" style={{ borderRadius: '24px' }}>
+              
+                {/* bagian header form */}
+                <div className="text-center mb-4">
+                    <div className="d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" 
+                        style={{
+                            width: '80px', 
+                            height: '80px', 
+                            borderRadius: '50%', 
+                            backgroundColor: '#F0FDF4',
+                            color: '#131313'
+                        }}>
+                        <i className="bi bi-person-plus-fill" style={{fontSize: '2.5rem'}}></i>
+                     </div>
+                    <h2 className="fw-bold text-dark mb-1">Registrasi Kasir</h2>
+                    <p className="text-muted small">Buat akun login untuk staf kasir baru</p>
+                </div>
+
+                {/* area pesan notifikasi */}
+                {error && (
+                    <div className="alert alert-danger d-flex align-items-center rounded-3 small fade show" role="alert">
+                        <i className="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+                        <div>{error}</div>
+                    </div>
+                )}
+                {success && (
+                    <div className="alert alert-success d-flex align-items-center rounded-3 small fade show" role="alert">
+                        <i className="bi bi-check-circle-fill me-2 flex-shrink-0"></i>
+                        <div>{success}</div>
+                    </div>
+                )}
+
+                <form onSubmit={handleRegister}>
+                     {/* input email */}
+                    <div className="mb-3">
+                        <label className="form-label fw-bold small text-secondary">Email Kasir</label>
+                        <div className="input-group">
+                             <span className="input-group-text bg-white border-end-0 text-muted ps-3 rounded-start-3">
+                                <i className="bi bi-envelope"></i>
+                            </span>
+                            <input
+                                type="email"
+                                className="form-control border-start-0 py-2 rounded-end-3"
+                                placeholder="nama@kantin.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                style={{boxShadow: 'none'}}
+                            />
+                        </div>
+                    </div>
+
+                    {/* input password */}
+                    <div className="mb-3">
+                        <label className="form-label fw-bold small text-secondary">Password</label>
+                        <div className="input-group">
+                            <span className="input-group-text bg-white border-end-0 text-muted ps-3 rounded-start-3">
+                                <i className="bi bi-lock"></i>
+                             </span>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                className="form-control border-start-0 border-end-0 py-2"
+                                placeholder="Minimal 6 karakter"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                style={{boxShadow: 'none'}}
+                            />
+                            <button 
+                                className="btn bg-white border border-start-0 text-muted rounded-end-3" 
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* input konfirmasi password */}
+                    <div className="mb-4">
+                        <label className="form-label fw-bold small text-secondary">Ulangi Password</label>
+                        <div className="input-group">
+                           <span className="input-group-text bg-white border-end-0 text-muted ps-3 rounded-start-3">
+                                <i className="bi bi-lock-fill"></i>
+                            </span>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                className="form-control border-start-0 py-2 rounded-end-3"
+                                placeholder="Ketik ulang password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                style={{boxShadow: 'none'}}
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="btn w-100 py-3 fw-bold text-white rounded-3 shadow-sm"
+                        style={{
+                            backgroundColor: '#1C46F5',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1535b3'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1C46F5'}
+                    >
+                        {loading ? (
+                            <span><span className="spinner-border spinner-border-sm me-2"></span>Memproses...</span>
+                        ) : (
+                            <span><i className="bi bi-person-plus me-2"></i> Daftarkan Akun</span>
+                        )}
+                    </button>
+                </form>
+            </div>
+
+        </div>
+      </div>
     </div>
   );
 }
